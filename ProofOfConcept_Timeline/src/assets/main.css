@@ -80,18 +80,3 @@ html, body {
     color: white;
     background: #EC660C;
 }
-
-/* Simulations BTN */
-.simbtn {
-    margin: 16px;
-    padding: 12px;
-    display: flex;
-    justify-content: center;
-    align-content: center;
-    background: #EC660C;
-    color: white;
-    border-radius: 10px;
-    border-style: none;
-    font-weight: 600;
-    font-size: 16px;
-}
