@@ -8,7 +8,7 @@ const router = useRouter();
 const openSimulation = () => {
   const newRoute = router.resolve({ name: 'simulation' });
   const newWindowUrl = `${window.location.origin}${newRoute.href}`;
-  window.open(newWindowUrl, '_blank', 'width=500,height=500,resizable=yes,scrollbars=yes');
+  window.open(newWindowUrl, '_blank', 'width=1000,height=1000,resizable=yes,scrollbars=yes');
 };
 
 </script>
