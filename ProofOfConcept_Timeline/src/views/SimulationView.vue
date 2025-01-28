@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { onMounted } from "vue";
 import Stats from "three/addons/libs/stats.module.js";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
-
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DecalGeometry } from "three/addons/geometries/DecalGeometry.js";
@@ -111,10 +111,12 @@ onMounted(() => {
     line = new THREE.Line(geometry, new THREE.LineBasicMaterial());
     scene.add(line);
 
-    const modalPathHead = "/models/gltf/LeePerrySmith/LeePerrySmith.glb";
-    const modalPathHuman = "public/models/gltf/human/ImageToStl.com_male.glb"
+    /// TODO: Make file loading better
+    const modelPathHead = "public/models/gltf/LeePerrySmith/LeePerrySmith.glb";
+    const modelPathHuman = "public/models/gltf/human/ImageToStl.com_male.glb";
+    const modelOBJ = "public/models/gltf/human/ImageToStl.com_male.glb";
 
-    loadModal(modalPathHuman);
+    loadModal(modelOBJ);
 
     raycaster = new THREE.Raycaster();
 
@@ -163,28 +165,55 @@ onMounted(() => {
     gui.open();
   }
 
-  function loadModal(modalPath) {
+  function loadModal(modelPath) {
+    
+    const extension = modelPath.split('.').pop().toLowerCase();
 
-    const loader = new GLTFLoader();
-
-    loader.load(
-        /// TODO: Add more extensions to load
-        modalPath, // currently only gltf loading possible
-        (gltf) => {
-          const root = gltf.scene;
-          mesh = root.getObjectByProperty("type", "Mesh");
-          if (!mesh) {
-            console.error("No Mesh found in the loaded model!");
-            return;
+    if (extension === "glb" || extension === "gltf") {
+      const loader = new GLTFLoader();
+      loader.load(
+          modelPath,
+          (gltf) => {
+            const root = gltf.scene;
+            mesh = root.getObjectByProperty("type", "Mesh");
+            if (!mesh) {
+              console.error("No Mesh found in the loaded GLTF model!");
+              return;
+            }
+            scene.add(mesh);
+            mesh.scale.multiplyScalar(8);
+          },
+          undefined,
+          (error) => {
+            console.error("Error loading GLTF model:", error);
           }
-          scene.add(mesh);
-          mesh.scale.multiplyScalar(8);
-        },
-        undefined,
-        (error) => {
-          console.error("Error loading model:", error);
-        }
-    );
+      );
+    } else if (extension === "obj") {
+      const loader = new OBJLoader();
+      loader.load(
+          modelPath,
+          (obj) => {
+            obj.traverse((child) => {
+              if (child.isMesh) {
+                mesh = child;
+              }
+            });
+
+            if (!mesh) {
+              console.error("No Mesh found in the loaded OBJ model!");
+              return;
+            }
+            scene.add(mesh);
+            mesh.scale.multiplyScalar(8);
+          },
+          undefined,
+          (error) => {
+            console.error("Error loading OBJ model:", error);
+          }
+      );
+    } else {
+      console.error("Unsupported file format:", extension);
+    }
   }
 
   function checkIntersection(x, y) {
