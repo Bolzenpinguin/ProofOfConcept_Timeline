@@ -111,7 +111,10 @@ onMounted(() => {
     line = new THREE.Line(geometry, new THREE.LineBasicMaterial());
     scene.add(line);
 
-    loadLeePerrySmith();
+    const modalPathHead = "/models/gltf/LeePerrySmith/LeePerrySmith.glb";
+    const modalPathHuman = "public/models/gltf/human/ImageToStl.com_male.glb"
+
+    loadModal(modalPathHuman);
 
     raycaster = new THREE.Raycaster();
 
@@ -160,35 +163,22 @@ onMounted(() => {
     gui.open();
   }
 
-  function loadLeePerrySmith() {
-    const map = textureLoader.load(
-        "/models/gltf/LeePerrySmith/Map-COL.jpg"
-    );
-    map.colorSpace = THREE.SRGBColorSpace;
-
-    const specularMap = textureLoader.load(
-        "/models/gltf/LeePerrySmith/Map-SPEC.jpg"
-    );
-    const normalMap = textureLoader.load(
-        "/models/gltf/LeePerrySmith/Infinite-Level_02_Tangent_SmoothUV.jpg"
-    );
+  function loadModal(modalPath) {
 
     const loader = new GLTFLoader();
 
     loader.load(
-        "/models/gltf/LeePerrySmith/LeePerrySmith.glb",
+        /// TODO: Add more extensions to load
+        modalPath, // currently only gltf loading possible
         (gltf) => {
-          mesh = gltf.scene.children[0];
-          mesh.material = new THREE.MeshPhongMaterial({
-            specular: 0x111111,
-            map: map,
-            specularMap: specularMap,
-            normalMap: normalMap,
-            shininess: 25,
-          });
-
+          const root = gltf.scene;
+          mesh = root.getObjectByProperty("type", "Mesh");
+          if (!mesh) {
+            console.error("No Mesh found in the loaded model!");
+            return;
+          }
           scene.add(mesh);
-          mesh.scale.multiplyScalar(10);
+          mesh.scale.multiplyScalar(8);
         },
         undefined,
         (error) => {
