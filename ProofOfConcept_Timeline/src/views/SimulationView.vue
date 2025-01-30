@@ -122,6 +122,8 @@ onMounted(() => {
     * Erstmal weiter miz glb von Bibo arbeiten, den rest dann später machen
     * */
 
+    loadModal(modelOBJ);
+
     loadModal(modelPathHead);
 
     raycaster = new THREE.Raycaster();
