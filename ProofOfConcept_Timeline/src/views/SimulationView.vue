@@ -79,7 +79,7 @@ onMounted(() => {
 
     // activate for showing frame counter and so on
     stats = new Stats();
-    //container.appendChild(stats.dom);
+    container.appendChild(stats.dom);
 
     scene = new THREE.Scene();
 
@@ -92,8 +92,8 @@ onMounted(() => {
     camera.position.z = 120;
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.minDistance = 50;
-    controls.maxDistance = 200;
+    controls.minDistance = 2;
+    controls.maxDistance = Infinity;
 
     scene.add(new THREE.AmbientLight(0x666666));
 
@@ -114,7 +114,13 @@ onMounted(() => {
     /// TODO: Make file loading better
     const modelPathHead = "public/models/gltf/LeePerrySmith/LeePerrySmith.glb";
     const modelPathHuman = "public/models/gltf/human/ImageToStl.com_male.glb";
-    const modelOBJ = "public/models/gltf/human/ImageToStl.com_male.glb";
+    const modelOBJ = "public/models/gltf/human/Male-1.OBJ";
+    const modelOBJ2 = "public/models/gltf/human/Male Mannequin4-bl.obj";
+
+    /*
+    * Problem: Wie macht man das mit der Skalierung der Modele, sodass die Actoren dann nicht zu riesig sind?
+    * Erstmal weiter miz glb von Bibo arbeiten, den rest dann später machen
+    * */
 
     loadModal(modelOBJ);
 
@@ -166,7 +172,6 @@ onMounted(() => {
   }
 
   function loadModal(modelPath) {
-    
     const extension = modelPath.split('.').pop().toLowerCase();
 
     if (extension === "glb" || extension === "gltf") {
@@ -180,7 +185,7 @@ onMounted(() => {
               console.error("No Mesh found in the loaded GLTF model!");
               return;
             }
-            scene.add(mesh);
+            scene.add(root);
             mesh.scale.multiplyScalar(8);
           },
           undefined,
@@ -203,8 +208,8 @@ onMounted(() => {
               console.error("No Mesh found in the loaded OBJ model!");
               return;
             }
-            scene.add(mesh);
-            mesh.scale.multiplyScalar(8);
+            scene.add(obj);
+            mesh.scale.multiplyScalar(1);
           },
           undefined,
           (error) => {
