@@ -6,7 +6,15 @@ import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { DecalGeometry } from "three/addons/geometries/DecalGeometry.js";
+
+// Initialize Actor Models
+let actorModel;
+const actors = [];
+
+// for the amount of actors placed
+let clickCount = 0;
+const maxClicks = 4;
+
 
 onMounted(() => {
   const container = document.getElementById("three-container");
@@ -16,14 +24,15 @@ onMounted(() => {
     return;
   }
 
-  let renderer, scene, camera, stats;
+  let renderer;
+  let scene;
+  let camera;
+  let stats;
   let mesh;
   let raycaster;
   let line;
 
-  // for the amount of actors placed
-  let clickCount = 0;
-  const maxClicks = 4;
+
 
   const intersection = {
     intersects: false,
@@ -32,41 +41,11 @@ onMounted(() => {
   };
 
   const mouse = new THREE.Vector2();
-  const intersects = [];
-
-  const textureLoader = new THREE.TextureLoader();
-  const decalDiffuse = textureLoader.load("/actor/decal-diffuse.png");
-  decalDiffuse.colorSpace = THREE.SRGBColorSpace;
-  const decalNormal = textureLoader.load("/actor/decal-normal.jpg");
-
-  const decalMaterial = new THREE.MeshPhongMaterial({
-    specular: 0x444444,
-    map: decalDiffuse,
-    normalMap: decalNormal,
-    normalScale: new THREE.Vector2(1, 1),
-    shininess: 30,
-    transparent: true,
-    depthTest: true,
-    depthWrite: false,
-    polygonOffset: true,
-    polygonOffsetFactor: -4,
-    wireframe: false,
-  });
+  const intersects: THREE.Intersection[] = [];
 
   const decals = [];
-  let mouseHelper;
+  let mouseHelper: THREE.MOUSE;
   const position = new THREE.Vector3();
-  const orientation = new THREE.Euler();
-  const size = new THREE.Vector3(10, 10, 10);
-
-  const params = {
-    minScale: 10,
-    maxScale: 20,
-    rotate: true,
-    clear: () => {
-      removeDecals();
-    },
-  };
 
   init();
 
@@ -76,6 +55,24 @@ onMounted(() => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setAnimationLoop(animate);
     container.appendChild(renderer.domElement);
+
+    // ********* Model ******** //
+    /// TODO: Make file loading better
+    const modelPathHeadGLB = "/public/models/glb/LeePerrySmith.glb";
+    const modelPathHeadOBJ = "/public/models/obj/head.obj"; /// dimensionen noch verbessern
+
+    /*
+    * Problem: Wie macht man das mit der Skalierung der Modele, sodass die Actoren dann nicht zu riesig sind?
+    * Erstmal weiter mit glb von Bib arbeiten, den rest dann später machen
+    * */
+
+    loadModel(modelPathHeadGLB);
+
+    // ********* Actor ******** //
+
+    const actorPath = "/public/actor/actor.obj"
+
+    loadActor(actorPath);
 
     // activate for showing frame counter and so on
     stats = new Stats();
@@ -111,20 +108,6 @@ onMounted(() => {
     line = new THREE.Line(geometry, new THREE.LineBasicMaterial());
     scene.add(line);
 
-    /// TODO: Make file loading better
-    const modelPathHead = "public/models/gltf/LeePerrySmith/LeePerrySmith.glb";
-    const modelPathHuman = "public/models/gltf/human/ImageToStl.com_male.glb";
-    const modelOBJ = "public/models/gltf/human/Male-1.OBJ";
-    const modelOBJ2 = "public/models/gltf/human/Male Mannequin4-bl.obj";
-
-    /*
-    * Problem: Wie macht man das mit der Skalierung der Modele, sodass die Actoren dann nicht zu riesig sind?
-    * Erstmal weiter miz glb von Bibo arbeiten, den rest dann später machen
-    * */
-
-    loadModal(modelOBJ);
-
-    loadModal(modelPathHead);
 
     raycaster = new THREE.Raycaster();
 
@@ -147,7 +130,7 @@ onMounted(() => {
       moved = false;
     });
 
-    // Place down the actors
+    // Place down actors
     window.addEventListener("pointerup", (event) => {
       if (!moved && clickCount < maxClicks) {
         checkIntersection(event.clientX, event.clientY);
@@ -165,15 +148,10 @@ onMounted(() => {
 
     window.addEventListener("pointermove", onPointerMove);
 
-    const gui = new GUI();
-    gui.add(params, "minScale", 1, 30);
-    gui.add(params, "maxScale", 1, 30);
-    gui.add(params, "rotate");
-    gui.add(params, "clear");
-    gui.open();
+
   }
 
-  function loadModal(modelPath) {
+  function loadModel( modelPath) {
     const extension = modelPath.split('.').pop().toLowerCase();
 
     if (extension === "glb" || extension === "gltf") {
@@ -223,6 +201,50 @@ onMounted(() => {
     }
   }
 
+  function loadActor(actorPath) {
+    const extension = actorPath.split('.').pop().toLowerCase();
+
+    if (extension === "glb" || extension === "gltf") {
+      const loader = new GLTFLoader();
+      loader.load(
+          actorPath,
+          (gltf) => {
+            actorModel = gltf.scene.clone();
+            actorModel.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+            console.log("Actor loaded successfully:", actorModel);
+          },
+          undefined,
+          (error) => {
+            console.error("Error loading GLTF actor:", error);
+          }
+      );
+    } else if (extension === "obj") {
+      const loader = new OBJLoader();
+      loader.load(
+          actorPath,
+          (obj) => {
+            actorModel = obj.clone();
+            console.log("OBJ actor loaded successfully:", actorModel);
+          },
+          undefined,
+          (error) => {
+            console.error("Error loading OBJ actor:", error);
+          }
+      );
+    } else {
+      console.log("Unsupported actor format:", extension);
+    }
+  }
+
+  function onPointerMove(event) {
+    checkIntersection(event.clientX, event.clientY);
+  }
+
   function checkIntersection(x, y) {
     if (!mesh) return;
 
@@ -259,26 +281,25 @@ onMounted(() => {
   }
 
   function shoot() {
+    if (!mesh || !actorModel) {
+      console.error("Actor model not loaded yet!");
+      return;
+    }
     position.copy(intersection.point);
-    orientation.copy(mouseHelper.rotation);
 
-    if (params.rotate) orientation.z = Math.random() * 2 * Math.PI;
+    // Offset position above mesh
+    position.addScaledVector(intersection.normal, 1);
 
-    const scale =
-        params.minScale + Math.random() * (params.maxScale - params.minScale);
-    size.set(scale, scale, scale);
+    const actorClone = actorModel.clone();
+    actorClone.position.copy(position);
+    actorClone.rotation.copy(mouseHelper.rotation); // TODO: Fix Rotation
 
-    const material = decalMaterial.clone();
-    material.color.setHex(Math.random() * 0xffffff);
+    actorClone.scale.set(1, 1, 1); // Skalieren der Actoren
+    scene.add(actorClone);
+    actors.push(actorClone);
 
-    const m = new THREE.Mesh(
-        new DecalGeometry(mesh, position, orientation, size),
-        material
-    );
-    m.renderOrder = decals.length;
-
-    decals.push(m);
-    mesh.attach(m);
+    // TODO: -> Speichern der Position in einer Log File
+    console.log("Actor placed at:", position);
   }
 
   function removeDecals() {
@@ -306,6 +327,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+
 #three-container {
   width: 100%;
   height: 100vh;
