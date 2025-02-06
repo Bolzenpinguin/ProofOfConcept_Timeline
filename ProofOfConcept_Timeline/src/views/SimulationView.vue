@@ -58,8 +58,8 @@ onMounted(() => {
 
     // ********* Model ******** //
     /// TODO: Make file loading better
-    const modelPathHeadGLB = "/public/models/glb/LeePerrySmith.glb";
-    const modelPathHeadOBJ = "/public/models/obj/head.obj"; /// dimensionen noch verbessern
+    const modelPathHeadGLB = "/models/glb/LeePerrySmith.glb";
+    const modelPathHeadOBJ = "/models/obj/head.obj"; /// dimensionen noch verbessern
 
     /*
     * Problem: Wie macht man das mit der Skalierung der Modele, sodass die Actoren dann nicht zu riesig sind?
@@ -70,7 +70,7 @@ onMounted(() => {
 
     // ********* Actor ******** //
 
-    const actorPath = "/public/actor/actor.obj"
+    const actorPath = "/actor/actor.obj"
 
     loadActor(actorPath);
 
