@@ -17,7 +17,7 @@ const maxClicks = 4;
 
 
 onMounted(() => {
-  const container = document.getElementById("three-container");
+  const container = document.getElementById("simulation-container");
 
   if (!container) {
     console.error("Container element not found!");
@@ -31,8 +31,6 @@ onMounted(() => {
   let mesh;
   let raycaster;
   let line;
-
-
 
   const intersection = {
     intersects: false,
@@ -66,7 +64,7 @@ onMounted(() => {
     * Erstmal weiter mit glb von Bib arbeiten, den rest dann später machen
     * */
 
-    loadModel(modelPathHeadGLB);
+    loadModel(modelPathHeadOBJ);
 
     // ********* Actor ******** //
 
@@ -76,7 +74,7 @@ onMounted(() => {
 
     // activate for showing frame counter and so on
     stats = new Stats();
-    container.appendChild(stats.dom);
+    //container.appendChild(stats.dom);
 
     scene = new THREE.Scene();
 
@@ -145,35 +143,13 @@ onMounted(() => {
         }
       }
     });
-
     window.addEventListener("pointermove", onPointerMove);
-
-
   }
 
   function loadModel( modelPath) {
     const extension = modelPath.split('.').pop().toLowerCase();
 
-    if (extension === "glb" || extension === "gltf") {
-      const loader = new GLTFLoader();
-      loader.load(
-          modelPath,
-          (gltf) => {
-            const root = gltf.scene;
-            mesh = root.getObjectByProperty("type", "Mesh");
-            if (!mesh) {
-              console.error("No Mesh found in the loaded GLTF model!");
-              return;
-            }
-            scene.add(root);
-            mesh.scale.multiplyScalar(8);
-          },
-          undefined,
-          (error) => {
-            console.error("Error loading GLTF model:", error);
-          }
-      );
-    } else if (extension === "obj") {
+    if (extension === "obj") {
       const loader = new OBJLoader();
       loader.load(
           modelPath,
@@ -189,7 +165,7 @@ onMounted(() => {
               return;
             }
             scene.add(obj);
-            mesh.scale.multiplyScalar(1);
+            mesh.scale.multiplyScalar(10); /// TODO: Laden der Skalierung dynamisch
           },
           undefined,
           (error) => {
@@ -204,36 +180,16 @@ onMounted(() => {
   function loadActor(actorPath) {
     const extension = actorPath.split('.').pop().toLowerCase();
 
-    if (extension === "glb" || extension === "gltf") {
-      const loader = new GLTFLoader();
-      loader.load(
-          actorPath,
-          (gltf) => {
-            actorModel = gltf.scene.clone();
-            actorModel.traverse((child) => {
-              if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-              }
-            });
-            console.log("Actor loaded successfully:", actorModel);
-          },
-          undefined,
-          (error) => {
-            console.error("Error loading GLTF actor:", error);
-          }
-      );
-    } else if (extension === "obj") {
+    if (extension === "obj") {
       const loader = new OBJLoader();
       loader.load(
           actorPath,
           (obj) => {
             actorModel = obj.clone();
-            console.log("OBJ actor loaded successfully:", actorModel);
           },
           undefined,
           (error) => {
-            console.error("Error loading OBJ actor:", error);
+            console.error("Error loading actor:", error);
           }
       );
     } else {
@@ -294,7 +250,7 @@ onMounted(() => {
     actorClone.position.copy(position);
     actorClone.rotation.copy(mouseHelper.rotation); // TODO: Fix Rotation
 
-    actorClone.scale.set(1, 1, 1); // Skalieren der Actoren
+    actorClone.scale.set(1, 1, 1); // Skalieren der Actors
     scene.add(actorClone);
     actors.push(actorClone);
 
@@ -323,12 +279,18 @@ onMounted(() => {
 </script>
 
 <template>
-  <div id="three-container"></div>
+  <div id="main-container">
+    <div id="simulation-container"></div>
+  </div>
 </template>
 
 <style scoped>
 
-#three-container {
+#main-container {
+  display: -ms-flexbox;
+}
+
+#simulation-container {
   width: 100%;
   height: 100vh;
 }
