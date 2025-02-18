@@ -13,8 +13,13 @@ const actors = [];
 let clickCount = 0;
 const maxClicks = 4;
 
+// for the manipulation
+let radius = 5;
+let strength = 2;
+
 
 onMounted(() => {
+  document.title = "4D-Simulation zur kollaborativen Gestaltung virtueller vibrotaktiler Displays";
   const container = document.getElementById("simulation-container");
 
   if (!container) {
@@ -144,7 +149,12 @@ onMounted(() => {
     window.addEventListener("pointermove", onPointerMove);
   }
 
-  function loadModel( modelPath) {
+
+  // Start Functions
+  // TODO: Auslagern der Funktion in separaten Dateien zur besseren Übersicht
+
+
+  function loadModel(modelPath) {
     const extension = modelPath.split('.').pop().toLowerCase();
 
     if (extension === "obj") {
@@ -163,7 +173,7 @@ onMounted(() => {
               return;
             }
             scene.add(obj);
-            mesh.scale.multiplyScalar(10); /// TODO: Laden der Skalierung dynamisch
+            mesh.scale.multiplyScalar(10); // TODO: Adjust dynamically
           },
           undefined,
           (error) => {
@@ -241,7 +251,7 @@ onMounted(() => {
     }
     position.copy(intersection.point);
 
-    // Offset position above mesh
+    // Offset position der Actor
     position.addScaledVector(intersection.normal, 1);
 
     const actorClone = actorModel.clone();
@@ -251,6 +261,8 @@ onMounted(() => {
     actorClone.scale.set(1, 1, 1); // Skalieren der Actors
     scene.add(actorClone);
     actors.push(actorClone);
+
+    meshManipulation(mesh.geometry, position);
 
     // TODO: -> Speichern der Position in einer Log File
     console.log("Actor placed at:", position);
@@ -274,6 +286,43 @@ onMounted(() => {
     stats.update();
   }
 });
+
+function meshManipulation(geometry, actorPosition) {
+
+
+  if (!geometry || !geometry.attributes.position) {
+    console.error("Invalid geometry data!");
+    return;
+  }
+
+  const positions = geometry.attributes.position;
+  const count = positions.count;
+
+  for (let i = 0; i < count; i++) {
+    const x = positions.getX(i);
+    const y = positions.getY(i);
+    const z = positions.getZ(i);
+
+    const distance = Math.sqrt(
+        Math.pow(x - actorPosition.x, 2) + Math.pow(z - actorPosition.z, 2)
+    );
+
+    if (distance < radius) {
+      const effect = Math.cos(distance / radius * Math.PI) * strength;
+      positions.setY(i, y + effect);
+    }
+  }
+
+  positions.needsUpdate = true;
+  geometry.computeVertexNormals();
+
+  radius = Math.max(radius - 1, 1);
+  strength = Math.max(strength - 0.5, 0.1);
+
+
+
+}
+
 </script>
 
 <template>
