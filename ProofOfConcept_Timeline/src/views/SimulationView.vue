@@ -4,6 +4,7 @@ import { onMounted } from "vue";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 
 // Initialize Actor Models
 let actorModel;
@@ -21,6 +22,8 @@ onMounted(() => {
     console.error("Container element not found!");
     return;
   }
+
+  let settings
 
   let renderer;
   let scene;
@@ -61,12 +64,6 @@ onMounted(() => {
     * */
 
     loadModel(modelPathHeadOBJ);
-
-    // ********* Actor ******** //
-
-    const actorPath = "/actor/actor.obj"
-
-    loadActor(actorPath);
 
     scene = new THREE.Scene();
 
@@ -168,6 +165,20 @@ onMounted(() => {
     }
   }
 
+
+  // ********* Actor ******** //
+
+  const actorModels = {
+    Cone: "/actor/actor_cone.obj",
+    Cube: "/actor/actor_cube.obj",
+    Cylinder: "/actor/actor_cylinder.obj",
+    Sphere: "/actor/actor_sphere.obj",
+  }
+
+  let selectedActor = actorModels.Cone;
+
+  loadActor(selectedActor);
+
   function loadActor(actorPath) {
     const extension = actorPath.split('.').pop().toLowerCase();
 
@@ -255,6 +266,34 @@ onMounted(() => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
+
+  // Create Settings Panel
+  function createPanel() {
+    const panel = new GUI( { width: 310 } );
+      const folder1 = panel.addFolder( 'Actors' );
+      const folder2 = panel.addFolder( 'Load new Model' );
+      const folder3 = panel.addFolder( 'General Settings' );
+
+      settings = {
+                'Actor Model': Object.keys(actorModels)[0], // default = cone
+      };
+
+      folder1
+          .add( settings, 'Actor Model', Object.keys(actorModels) )
+          .name("Chose an Actor Model")
+          .onChange((value) => {
+            selectedActor = actorModels[value];
+            loadActor(selectedActor);
+          });
+
+      folder1.open();
+      folder2.open();
+      folder3.open();
+
+
+  }
+
+  createPanel();
 
   function render() {
     renderer.render(scene, camera);
