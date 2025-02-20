@@ -5,6 +5,7 @@ import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
+import {icon} from "@fortawesome/fontawesome-svg-core";
 
 // Initialize Actor Models
 let actorModel;
@@ -261,39 +262,43 @@ onMounted(() => {
   function createPanel() {
     const panel = new GUI({ width: 310 });
 
-    const folders = [
-      panel.addFolder("Channel 1"),
-      panel.addFolder("Channel 2"),
-      panel.addFolder("Channel 3"),
-      panel.addFolder("Channel 4"),
-    ];
-
-    settings = {
+    let settings = {
       "Actor Model": Object.keys(actorModels)[0], // Default = Cone
-      "Placed Actors": [false, false, false, false], // Default = nothing placed
+      "Placed Actors": false, // Default = nothing placed
     };
 
-    folders.forEach((folder, index) => {
+    // Main folders
+    const channelsMainFolder = panel.addFolder("Channels");
+    const mainSettingsFolder = panel.addFolder("Settings");
+    const saveAndLoadFolder = panel.addFolder("Save & Load");
+
+    // subfolders
+    const channelFolders = {
+      "Channel 1": channelsMainFolder.addFolder("↪___Channel 1"),
+      "Channel 2": channelsMainFolder.addFolder("↪___Channel 2"),
+      "Channel 3": channelsMainFolder.addFolder("↪___Channel 3"),
+      "Channel 4": channelsMainFolder.addFolder("↪___Channel 4"),
+    };
+
+    Object.entries(channelFolders).forEach(([numberOfChannels, folder]) => {
       folder
           .add(settings, "Actor Model", Object.keys(actorModels))
           .name("Select an Actor Model")
-          .onChange((value) => {
-            selectedActor = actorModels[value];
+          .onChange((modelName) => {
+            selectedActor = actorModels[modelName];
             loadActor(selectedActor);
           });
 
       folder
-          .add(settings["Placed Actors"], index)
-          .name("Place Actor")
-          ;
+          .add(settings, "Placed Actors")
+          .name("Place Actor");
 
-      folder.open();
+
     });
+
   }
 
   createPanel();
-
-
 
 
   function render() {
