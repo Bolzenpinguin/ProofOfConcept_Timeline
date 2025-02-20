@@ -25,12 +25,9 @@ onMounted(() => {
   let renderer;
   let scene;
   let camera;
-  let stats;
   let mesh;
   let raycaster;
   let line;
-
-
 
   const intersection = {
     intersects: false,
@@ -41,7 +38,6 @@ onMounted(() => {
   const mouse = new THREE.Vector2();
   const intersects: THREE.Intersection[] = [];
 
-  const decals = [];
   let mouseHelper: THREE.MOUSE;
   const position = new THREE.Vector3();
 
@@ -64,7 +60,7 @@ onMounted(() => {
     * Erstmal weiter mit glb von Bib arbeiten, den rest dann später machen
     * */
 
-    loadModel(modelPathHeadGLB);
+    loadModel(modelPathHeadOBJ);
 
     // ********* Actor ******** //
 
@@ -135,7 +131,7 @@ onMounted(() => {
         }
 
         if (clickCount >= maxClicks) {
-          console.log("Max clicks reached!");
+          alert("Max clicks reached!");
         }
       }
     });
@@ -148,26 +144,7 @@ onMounted(() => {
   function loadModel( modelPath) {
     const extension = modelPath.split('.').pop().toLowerCase();
 
-    if (extension === "glb" || extension === "gltf") {
-      const loader = new GLTFLoader();
-      loader.load(
-          modelPath,
-          (gltf) => {
-            const root = gltf.scene;
-            mesh = root.getObjectByProperty("type", "Mesh");
-            if (!mesh) {
-              console.error("No Mesh found in the loaded GLTF model!");
-              return;
-            }
-            scene.add(root);
-            mesh.scale.multiplyScalar(8);
-          },
-          undefined,
-          (error) => {
-            console.error("Error loading GLTF model:", error);
-          }
-      );
-    } else if (extension === "obj") {
+    if (extension === "obj") {
       const loader = new OBJLoader();
       loader.load(
           modelPath,
@@ -179,59 +156,32 @@ onMounted(() => {
             });
 
             if (!mesh) {
-              console.error("No Mesh found in the loaded OBJ model!");
+              alert("No Mesh found in the loaded OBJ model!");
               return;
             }
             scene.add(obj);
-            mesh.scale.multiplyScalar(1);
+            mesh.scale.multiplyScalar(8); // TODO: noch skalieren dynamsich machen
           },
-          undefined,
-          (error) => {
-            console.error("Error loading OBJ model:", error);
-          }
       );
     } else {
-      console.error("Unsupported file format:", extension);
+      alert("Wrong format, only .obj supported");
     }
   }
 
   function loadActor(actorPath) {
     const extension = actorPath.split('.').pop().toLowerCase();
 
-    if (extension === "glb" || extension === "gltf") {
-      const loader = new GLTFLoader();
-      loader.load(
-          actorPath,
-          (gltf) => {
-            actorModel = gltf.scene.clone();
-            actorModel.traverse((child) => {
-              if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-              }
-            });
-            console.log("Actor loaded successfully:", actorModel);
-          },
-          undefined,
-          (error) => {
-            console.error("Error loading GLTF actor:", error);
-          }
-      );
-    } else if (extension === "obj") {
+    // TODO: Andere Formate laden lassen
+    if (extension === "obj") {
       const loader = new OBJLoader();
       loader.load(
           actorPath,
           (obj) => {
             actorModel = obj.clone();
-            console.log("OBJ actor loaded successfully:", actorModel);
-          },
-          undefined,
-          (error) => {
-            console.error("Error loading OBJ actor:", error);
           }
       );
     } else {
-      console.log("Unsupported actor format:", extension);
+      alert("Wrong Format, only .obj supported.");
     }
   }
 
@@ -276,19 +226,23 @@ onMounted(() => {
 
   function shoot() {
     if (!mesh || !actorModel) {
-      console.error("Actor model not loaded yet!");
+      alert("Actor model not loaded yet!");
       return;
     }
     position.copy(intersection.point);
 
     // Offset position above mesh
-    position.addScaledVector(intersection.normal, 1);
+    position.addScaledVector(intersection.normal, -0.5);
 
     const actorClone = actorModel.clone();
     actorClone.position.copy(position);
-    actorClone.rotation.copy(mouseHelper.rotation); // TODO: Fix Rotation
 
-    actorClone.scale.set(1, 1, 1); // Skalieren der Actoren
+    // rotate actors on normales
+    const upVector = new THREE.Vector3(0, 1, 0);
+    const quat = new THREE.Quaternion().setFromUnitVectors(upVector, intersection.normal);
+    actorClone.quaternion.copy(quat);
+
+    actorClone.scale.set(1, 1, 1); // scale the actors
     scene.add(actorClone);
     actors.push(actorClone);
 
