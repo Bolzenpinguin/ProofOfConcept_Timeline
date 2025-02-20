@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import * as THREE from "three";
 import { onMounted } from "vue";
-import Stats from "three/addons/libs/stats.module.js";
-import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -53,7 +51,7 @@ onMounted(() => {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setAnimationLoop(animate);
+    renderer.setAnimationLoop(render);
     container.appendChild(renderer.domElement);
 
     // ********* Model ******** //
@@ -73,10 +71,6 @@ onMounted(() => {
     const actorPath = "/actor/actor.obj"
 
     loadActor(actorPath);
-
-    // activate for showing frame counter and so on
-    stats = new Stats();
-    container.appendChild(stats.dom);
 
     scene = new THREE.Scene();
 
@@ -302,22 +296,14 @@ onMounted(() => {
     console.log("Actor placed at:", position);
   }
 
-  function removeDecals() {
-    decals.forEach((d) => {
-      mesh.remove(d);
-    });
-    decals.length = 0;
-  }
-
   function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  function animate() {
+  function render() {
     renderer.render(scene, camera);
-    stats.update();
   }
 });
 </script>
