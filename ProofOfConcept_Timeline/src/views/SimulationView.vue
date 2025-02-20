@@ -10,11 +10,6 @@ import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 let actorModel;
 const actors = [];
 
-// for the amount of actors placed
-let clickCount = 0;
-const maxClicks = 4;
-
-
 onMounted(() => {
   const container = document.getElementById("three-container");
 
@@ -119,16 +114,11 @@ onMounted(() => {
 
     // Place down actors
     window.addEventListener("pointerup", (event) => {
-      if (!moved && clickCount < maxClicks) {
+      if (!moved) {
         checkIntersection(event.clientX, event.clientY);
 
         if (intersection.intersects) {
           shoot();
-          clickCount++;
-        }
-
-        if (clickCount >= maxClicks) {
-          alert("Max clicks reached!");
         }
       }
     });
@@ -243,7 +233,7 @@ onMounted(() => {
     position.copy(intersection.point);
 
     // Offset position above mesh
-    position.addScaledVector(intersection.normal, -0.5);
+    position.addScaledVector(intersection.normal, 0);
 
     const actorClone = actorModel.clone();
     actorClone.position.copy(position);
@@ -269,36 +259,48 @@ onMounted(() => {
 
   // Create Settings Panel
   function createPanel() {
-    const panel = new GUI( { width: 310 } );
-      const folder1 = panel.addFolder( 'Actors' );
-      const folder2 = panel.addFolder( 'Load new Model' );
-      const folder3 = panel.addFolder( 'General Settings' );
+    const panel = new GUI({ width: 310 });
 
-      settings = {
-                'Actor Model': Object.keys(actorModels)[0], // default = cone
-      };
+    const folders = [
+      panel.addFolder("Channel 1"),
+      panel.addFolder("Channel 2"),
+      panel.addFolder("Channel 3"),
+      panel.addFolder("Channel 4"),
+    ];
 
-      folder1
-          .add( settings, 'Actor Model', Object.keys(actorModels) )
-          .name("Chose an Actor Model")
+    settings = {
+      "Actor Model": Object.keys(actorModels)[0], // Default = Cone
+      "Placed Actors": [false, false, false, false], // Default = nothing placed
+    };
+
+    folders.forEach((folder, index) => {
+      folder
+          .add(settings, "Actor Model", Object.keys(actorModels))
+          .name("Select an Actor Model")
           .onChange((value) => {
             selectedActor = actorModels[value];
             loadActor(selectedActor);
           });
 
-      folder1.open();
-      folder2.open();
-      folder3.open();
+      folder
+          .add(settings["Placed Actors"], index)
+          .name("Place Actor")
+          ;
 
-
+      folder.open();
+    });
   }
 
   createPanel();
+
+
+
 
   function render() {
     renderer.render(scene, camera);
   }
 });
+
 </script>
 
 <template>
