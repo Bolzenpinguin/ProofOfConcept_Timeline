@@ -1,24 +1,23 @@
 <script setup lang="ts">
 import * as THREE from "three";
 import { onMounted } from "vue";
+import Stats from "three/addons/libs/stats.module.js";
+import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-// Actor variables
+// Initialize Actor Models
 let actorModel;
 const actors = [];
+
+// for the amount of actors placed
 let clickCount = 0;
 const maxClicks = 4;
-let actorPosition = [];
-
-// Graphics variables
-const clock = new THREE.Clock();
-let time = 0;
 
 
 onMounted(() => {
-  document.title = "4D-Simulation zur kollaborativen Gestaltung virtueller vibrotaktiler Displays";
-  const container = document.getElementById("simulation-container");
+  const container = document.getElementById("three-container");
 
   if (!container) {
     console.error("Container element not found!");
@@ -28,9 +27,12 @@ onMounted(() => {
   let renderer;
   let scene;
   let camera;
+  let stats;
   let mesh;
   let raycaster;
   let line;
+
+
 
   const intersection = {
     intersects: false,
@@ -41,12 +43,11 @@ onMounted(() => {
   const mouse = new THREE.Vector2();
   const intersects: THREE.Intersection[] = [];
 
+  const decals = [];
   let mouseHelper: THREE.MOUSE;
   const position = new THREE.Vector3();
 
   init();
-
-  /****************************** Functions ********************************/
 
   function init() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -65,13 +66,17 @@ onMounted(() => {
     * Erstmal weiter mit glb von Bib arbeiten, den rest dann später machen
     * */
 
-    loadModel(modelPathHeadOBJ);
+    loadModel(modelPathHeadGLB);
 
     // ********* Actor ******** //
 
     const actorPath = "/actor/actor.obj"
 
     loadActor(actorPath);
+
+    // activate for showing frame counter and so on
+    stats = new Stats();
+    container.appendChild(stats.dom);
 
     scene = new THREE.Scene();
 
@@ -136,20 +141,39 @@ onMounted(() => {
         }
 
         if (clickCount >= maxClicks) {
-          alert("Max clicks reached!");
+          console.log("Max clicks reached!");
         }
       }
     });
+
     window.addEventListener("pointermove", onPointerMove);
+
+
   }
 
-  // TODO: Auslagern der Funktion in separaten Dateien zur besseren Übersicht
-
-
-  function loadModel(modelPath) {
+  function loadModel( modelPath) {
     const extension = modelPath.split('.').pop().toLowerCase();
 
-    if (extension === "obj") {
+    if (extension === "glb" || extension === "gltf") {
+      const loader = new GLTFLoader();
+      loader.load(
+          modelPath,
+          (gltf) => {
+            const root = gltf.scene;
+            mesh = root.getObjectByProperty("type", "Mesh");
+            if (!mesh) {
+              console.error("No Mesh found in the loaded GLTF model!");
+              return;
+            }
+            scene.add(root);
+            mesh.scale.multiplyScalar(8);
+          },
+          undefined,
+          (error) => {
+            console.error("Error loading GLTF model:", error);
+          }
+      );
+    } else if (extension === "obj") {
       const loader = new OBJLoader();
       loader.load(
           modelPath,
@@ -157,45 +181,63 @@ onMounted(() => {
             obj.traverse((child) => {
               if (child.isMesh) {
                 mesh = child;
-                mesh.geometry = new THREE.BufferGeometry().copy(child.geometry);
-                mesh.geometry.attributes.position = mesh.geometry.attributes.position.clone();
               }
             });
 
             if (!mesh) {
-              alert("No Mesh found in the loaded OBJ model!");
+              console.error("No Mesh found in the loaded OBJ model!");
               return;
             }
-            scene.add(mesh);
-            mesh.scale.multiplyScalar(10); // TODO: Adjust dynamically
+            scene.add(obj);
+            mesh.scale.multiplyScalar(1);
           },
           undefined,
           (error) => {
-            alert("Error loading OBJ model:");
+            console.error("Error loading OBJ model:", error);
           }
       );
     } else {
-      alert("Unsupported file format");
+      console.error("Unsupported file format:", extension);
     }
   }
 
   function loadActor(actorPath) {
     const extension = actorPath.split('.').pop().toLowerCase();
 
-    if (extension === "obj") {
+    if (extension === "glb" || extension === "gltf") {
+      const loader = new GLTFLoader();
+      loader.load(
+          actorPath,
+          (gltf) => {
+            actorModel = gltf.scene.clone();
+            actorModel.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+            console.log("Actor loaded successfully:", actorModel);
+          },
+          undefined,
+          (error) => {
+            console.error("Error loading GLTF actor:", error);
+          }
+      );
+    } else if (extension === "obj") {
       const loader = new OBJLoader();
       loader.load(
           actorPath,
           (obj) => {
             actorModel = obj.clone();
+            console.log("OBJ actor loaded successfully:", actorModel);
           },
           undefined,
           (error) => {
-            alert("Error loading actor");
+            console.error("Error loading OBJ actor:", error);
           }
       );
     } else {
-      alert("Unsupported actor format:");
+      console.log("Unsupported actor format:", extension);
     }
   }
 
@@ -240,28 +282,31 @@ onMounted(() => {
 
   function shoot() {
     if (!mesh || !actorModel) {
-      alert("Actor model not loaded yet!");
+      console.error("Actor model not loaded yet!");
       return;
     }
-
     position.copy(intersection.point);
 
-    // Offset position of the actor
+    // Offset position above mesh
     position.addScaledVector(intersection.normal, 1);
 
     const actorClone = actorModel.clone();
     actorClone.position.copy(position);
-    actorClone.rotation.copy(mouseHelper.rotation);
+    actorClone.rotation.copy(mouseHelper.rotation); // TODO: Fix Rotation
 
-    actorClone.scale.set(1, 1, 1); // Scale of the actors
+    actorClone.scale.set(1, 1, 1); // Skalieren der Actoren
     scene.add(actorClone);
     actors.push(actorClone);
 
-    actorPosition.push(position.clone());
-
+    // TODO: -> Speichern der Position in einer Log File
     console.log("Actor placed at:", position);
-    console.log("All stored actor positions:", actorPosition);
+  }
 
+  function removeDecals() {
+    decals.forEach((d) => {
+      mesh.remove(d);
+    });
+    decals.length = 0;
   }
 
   function onWindowResize() {
@@ -270,79 +315,20 @@ onMounted(() => {
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  // render function
   function animate() {
-    render();
-  }
-
-  function render() {
-    const deltaTime = clock.getDelta();
-    time += deltaTime;
-
-    if (mesh) {
-      const positionAttribute = mesh.geometry.attributes.position;
-      const normalAttribute = mesh.geometry.attributes.normal;
-      const vertexArray = positionAttribute.array;
-      const normalArray = normalAttribute.array;
-
-      const frequency = 0.01; // Wave frequency
-      const amplitude = 0.1; // Wave intensity
-      const targetX = 0; // Set your specific coordinate (adjust as needed)
-      const targetY = 0;
-      const targetZ = 0;
-      const radius = 5; // Area of effect (distance threshold)
-
-      for (let i = 0; i < vertexArray.length; i += 3) {
-        const x = vertexArray[i];   // X coordinate
-        const y = vertexArray[i + 1]; // Y coordinate (height)
-        const z = vertexArray[i + 2]; // Z coordinate
-
-        // Calculate distance from the target coordinate
-        const distance = Math.sqrt(
-            Math.pow(x - targetX, 2) +
-            Math.pow(y - targetY, 2) +
-            Math.pow(z - targetZ, 2)
-        );
-
-        // Apply wave effect only within a specified radius
-        if (distance < radius) {
-          const waveFactor = amplitude * Math.sin(x * frequency + time) * Math.cos(z * frequency + time);
-
-          // Move the vertex **along its normal direction**
-          vertexArray[i] += normalArray[i] * waveFactor * 0.2;
-          vertexArray[i + 1] += normalArray[i + 1] * waveFactor;
-          vertexArray[i + 2] += normalArray[i + 2] * waveFactor * 0.2;
-        }
-      }
-
-      mesh.geometry.computeVertexNormals();
-      positionAttribute.needsUpdate = true;
-    }
-
     renderer.render(scene, camera);
+    stats.update();
   }
-
-
 });
-
-
-
-
 </script>
 
 <template>
-  <div id="main-container">
-    <div id="simulation-container"></div>
-  </div>
+  <div id="three-container"></div>
 </template>
 
 <style scoped>
 
-#main-container {
-  display: -ms-flexbox;
-}
-
-#simulation-container {
+#three-container {
   width: 100%;
   height: 100vh;
 }
