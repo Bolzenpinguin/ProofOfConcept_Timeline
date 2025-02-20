@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import * as THREE from "three";
 import { onMounted } from "vue";
-import Stats from "three/addons/libs/stats.module.js";
-import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -16,6 +14,9 @@ let clickCount = 0;
 const maxClicks = 4;
 
 
+const clock = new THREE.Clock();
+let time = 0;
+
 onMounted(() => {
   const container = document.getElementById("three-container");
 
@@ -27,11 +28,9 @@ onMounted(() => {
   let renderer;
   let scene;
   let camera;
-  let stats;
   let mesh;
   let raycaster;
   let line;
-
 
 
   const intersection = {
@@ -53,7 +52,7 @@ onMounted(() => {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setAnimationLoop(animate);
+    renderer.setAnimationLoop(render);
     container.appendChild(renderer.domElement);
 
     // ********* Model ******** //
@@ -74,9 +73,6 @@ onMounted(() => {
 
     loadActor(actorPath);
 
-    // activate for showing frame counter and so on
-    stats = new Stats();
-    container.appendChild(stats.dom);
 
     scene = new THREE.Scene();
 
@@ -302,12 +298,6 @@ onMounted(() => {
     console.log("Actor placed at:", position);
   }
 
-  function removeDecals() {
-    decals.forEach((d) => {
-      mesh.remove(d);
-    });
-    decals.length = 0;
-  }
 
   function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -315,9 +305,54 @@ onMounted(() => {
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  function animate() {
+
+  function render() {
+   const deltaTime = clock.getDelta();
+    time += deltaTime;
+
+    if (mesh) {
+      const positionAttribute = mesh.geometry.attributes.position;
+      const normalAttribute = mesh.geometry.attributes.normal;
+      const vertexArray = positionAttribute.array;
+      const normalArray = normalAttribute.array;
+
+      const frequency = 0.01; // Wave frequency
+      const amplitude = 0.1; // Wave intensity
+      const targetX = 0; // Set your specific coordinate (adjust as needed)
+      const targetY = 0;
+      const targetZ = 0;
+      const radius = 5; // Area of effect (distance threshold)
+
+      for (let i = 0; i < vertexArray.length; i += 3) {
+        const x = vertexArray[i];   // X coordinate
+        const y = vertexArray[i + 1]; // Y coordinate (height)
+        const z = vertexArray[i + 2]; // Z coordinate
+
+        // Calculate distance from the target coordinate
+        const distance = Math.sqrt(
+            Math.pow(x - targetX, 2) +
+            Math.pow(y - targetY, 2) +
+            Math.pow(z - targetZ, 2)
+        );
+
+        // Apply wave effect only within a specified radius
+        if (distance < radius) {
+          const waveFactor = amplitude * Math.sin(x * frequency + time) * Math.cos(z * frequency + time);
+
+          // Move the vertex **along its normal direction**
+          vertexArray[i] += normalArray[i] * waveFactor * 0.2;
+          vertexArray[i + 1] += normalArray[i + 1] * waveFactor;
+          vertexArray[i + 2] += normalArray[i + 2] * waveFactor * 0.2;
+        }
+      }
+
+      mesh.geometry.computeVertexNormals();
+      positionAttribute.needsUpdate = true;
+    }
+
+
+
     renderer.render(scene, camera);
-    stats.update();
   }
 });
 </script>
