@@ -3,13 +3,22 @@ import * as THREE from "three";
 import { onMounted } from "vue";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
-import {icon} from "@fortawesome/fontawesome-svg-core";
 
-// Initialize Actor Models
+// Global Variables
 let actorModel;
-const actors = [];
+const channels = ["Channel 1", "Channel 2", "Channel 3", "Channel 4"];
+const channelActors = {
+  "Channel 1": null,
+  "Channel 2": null,
+  "Channel 3": null,
+  "Channel 4": null,
+};
+
+const guiSettings = {
+  selectedChannel: channels[0],
+  placeActor: false, // true: Actor placed; false: Actor removed
+};
 
 onMounted(() => {
   const container = document.getElementById("three-container");
@@ -19,12 +28,10 @@ onMounted(() => {
     return;
   }
 
-  let settings
-
   let renderer;
   let scene;
   let camera;
-  let mesh;
+  let meshModel;
   let raycaster;
   let line;
 
@@ -85,12 +92,11 @@ onMounted(() => {
     dirLight2.position.set(-1, 0.75, -0.5);
     scene.add(dirLight2);
 
+    // Line for VVisualization
     const geometry = new THREE.BufferGeometry();
     geometry.setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
-
     line = new THREE.Line(geometry, new THREE.LineBasicMaterial());
     scene.add(line);
-
 
     raycaster = new THREE.Raycaster();
 
@@ -104,11 +110,9 @@ onMounted(() => {
     window.addEventListener("resize", onWindowResize);
 
     let moved = false;
-
     controls.addEventListener("change", () => {
       moved = true;
     });
-
     window.addEventListener("pointerdown", () => {
       moved = false;
     });
@@ -117,16 +121,28 @@ onMounted(() => {
     window.addEventListener("pointerup", (event) => {
       if (!moved) {
         checkIntersection(event.clientX, event.clientY);
-
         if (intersection.intersects) {
-          shoot();
+          const channel = guiSettings.selectedChannel;
+          // Place Actor + tiggel Checkbox TODO Funktioniert noch nicht
+          if (!channelActors[channel]) {
+            placeActor(channel);
+            guiSettings.placeActor = true;
+          }
         }
       }
     });
 
     window.addEventListener("pointermove", onPointerMove);
 
-
+    const actorModels = {
+      Cone: "/actor/actor_cone.obj",
+      Cube: "/actor/actor_cube.obj",
+      Cylinder: "/actor/actor_cylinder.obj",
+      Sphere: "/actor/actor_sphere.obj",
+    };
+    let selectedActor = actorModels.Cone; // default
+    loadActor(selectedActor);
+    createPanel(actorModels);
   }
 
   function loadModel( modelPath) {
@@ -139,41 +155,25 @@ onMounted(() => {
           (obj) => {
             obj.traverse((child) => {
               if (child.isMesh) {
-                mesh = child;
+                meshModel = child;
               }
             });
 
-            if (!mesh) {
+            if (!meshModel) {
               alert("No Mesh found in the loaded OBJ model!");
               return;
             }
             scene.add(obj);
-            mesh.scale.multiplyScalar(8); // TODO: noch skalieren dynamsich machen
-          },
+            meshModel.scale.multiplyScalar(8); // TODO: noch skalieren dynamsich machen
+          }
       );
     } else {
       alert("Wrong format, only .obj supported");
     }
   }
 
-
-  // ********* Actor ******** //
-
-  const actorModels = {
-    Cone: "/actor/actor_cone.obj",
-    Cube: "/actor/actor_cube.obj",
-    Cylinder: "/actor/actor_cylinder.obj",
-    Sphere: "/actor/actor_sphere.obj",
-  }
-
-  let selectedActor = actorModels.Cone;
-
-  loadActor(selectedActor);
-
   function loadActor(actorPath) {
     const extension = actorPath.split('.').pop().toLowerCase();
-
-    // TODO: Andere Formate laden lassen
     if (extension === "obj") {
       const loader = new OBJLoader();
       loader.load(
@@ -192,20 +192,20 @@ onMounted(() => {
   }
 
   function checkIntersection(x, y) {
-    if (!mesh) return;
+    if (!meshModel) return;
 
     mouse.x = (x / window.innerWidth) * 2 - 1;
     mouse.y = -(y / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    raycaster.intersectObject(mesh, false, intersects);
+    raycaster.intersectObject(meshModel, false, intersects);
 
     if (intersects.length > 0) {
       const p = intersects[0].point;
       mouseHelper.position.copy(p);
       intersection.point.copy(p);
 
-      const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+      const normalMatrix = new THREE.Matrix3().getNormalMatrix(meshModel.matrixWorld);
       const n = intersects[0].face.normal.clone();
       n.applyNormalMatrix(normalMatrix);
       n.multiplyScalar(10);
@@ -226,8 +226,8 @@ onMounted(() => {
     }
   }
 
-  function shoot() {
-    if (!mesh || !actorModel) {
+  function placeActor(channel) {
+    if (!meshModel || !actorModel) {
       alert("Actor model not loaded yet!");
       return;
     }
@@ -246,10 +246,17 @@ onMounted(() => {
 
     actorClone.scale.set(1, 1, 1); // scale the actors
     scene.add(actorClone);
-    actors.push(actorClone);
+    channelActors[channel] = actorClone;
+    // TODO Speichern der Positionen der Actors
+    console.log(`Actor placed at ${channel} on position:`, position);
+  }
 
-    // TODO: -> Speichern der Position in einer Log File
-    console.log("Actor placed at:", position);
+  function removeActor(channel) {
+    if (channelActors[channel]) {
+      scene.remove(channelActors[channel]);
+      channelActors[channel] = null;
+      console.log(`Actor removed from ${channel}`);
+    }
   }
 
   function onWindowResize() {
@@ -259,53 +266,44 @@ onMounted(() => {
   }
 
   // Create Settings Panel
-  function createPanel() {
+  function createPanel(actorModels) {
     const panel = new GUI({ width: 310 });
 
-    let settings = {
-      "Actor Model": Object.keys(actorModels)[0], // Default = Cone
-      "Placed Actors": false, // Default = nothing placed
-    };
+    panel.add(guiSettings, "selectedChannel", channels)
+        .name("Select Channel")
+        .onChange((value) => {
+          guiSettings.placeActor = !!channelActors[value];
+        });
 
-    // Main folders
-    const channelsMainFolder = panel.addFolder("Channels");
-    const mainSettingsFolder = panel.addFolder("Settings");
-    const saveAndLoadFolder = panel.addFolder("Save & Load");
+    panel.add({ actorModel: Object.keys(actorModels)[0] }, "actorModel", Object.keys(actorModels))
+        .name("Select Actor Model")
+        .onChange((modelName) => {
+          const selectedPath = actorModels[modelName];
+          loadActor(selectedPath);
+        });
 
-    // subfolders
-    const channelFolders = {
-      "Channel 1": channelsMainFolder.addFolder("↪___Channel 1"),
-      "Channel 2": channelsMainFolder.addFolder("↪___Channel 2"),
-      "Channel 3": channelsMainFolder.addFolder("↪___Channel 3"),
-      "Channel 4": channelsMainFolder.addFolder("↪___Channel 4"),
-    };
-
-    Object.entries(channelFolders).forEach(([numberOfChannels, folder]) => {
-      folder
-          .add(settings, "Actor Model", Object.keys(actorModels))
-          .name("Select an Actor Model")
-          .onChange((modelName) => {
-            selectedActor = actorModels[modelName];
-            loadActor(selectedActor);
-          });
-
-      folder
-          .add(settings, "Placed Actors")
-          .name("Place Actor");
-
-
-    });
-
+    panel.add(guiSettings, "placeActor")
+        .name("Place/Remove Actor")
+        .onChange((value) => {
+          const channel = guiSettings.selectedChannel;
+          if (value) {
+            if (!channelActors[channel]) {
+              if (intersection.intersects) {
+                placeActor(channel);
+              } else {
+                guiSettings.placeActor = false;
+              }
+            }
+          } else {
+            removeActor(channel);
+          }
+        });
   }
-
-  createPanel();
-
 
   function render() {
     renderer.render(scene, camera);
   }
 });
-
 </script>
 
 <template>
@@ -313,7 +311,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-
 #three-container {
   width: 100%;
   height: 100vh;
