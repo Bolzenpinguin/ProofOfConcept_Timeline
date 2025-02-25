@@ -293,6 +293,7 @@ onMounted(() => {
     renderer.render(scene, camera);
   }
 });
+
 </script>
 
 <template>
