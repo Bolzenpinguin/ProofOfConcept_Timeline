@@ -47,6 +47,7 @@ onMounted(() => {
   let mouseHelper: THREE.MOUSE;
   const position = new THREE.Vector3();
 
+  let placeActorController;
   init();
 
   function init() {
@@ -92,7 +93,7 @@ onMounted(() => {
     dirLight2.position.set(-1, 0.75, -0.5);
     scene.add(dirLight2);
 
-    // Line for VVisualization
+    // Line for Visualization
     const geometry = new THREE.BufferGeometry();
     geometry.setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
     line = new THREE.Line(geometry, new THREE.LineBasicMaterial());
@@ -123,10 +124,13 @@ onMounted(() => {
         checkIntersection(event.clientX, event.clientY);
         if (intersection.intersects) {
           const channel = guiSettings.selectedChannel;
-          // Place Actor + tiggel Checkbox TODO Funktioniert noch nicht
+          // Place Actor + toggle Checkbox
           if (!channelActors[channel]) {
             placeActor(channel);
             guiSettings.placeActor = true;
+            if (placeActorController) {
+              placeActorController.updateDisplay();
+            }
           }
         }
       }
@@ -145,7 +149,7 @@ onMounted(() => {
     createPanel(actorModels);
   }
 
-  function loadModel( modelPath) {
+  function loadModel(modelPath) {
     const extension = modelPath.split('.').pop().toLowerCase();
 
     if (extension === "obj") {
@@ -269,20 +273,21 @@ onMounted(() => {
   function createPanel(actorModels) {
     const panel = new GUI({ width: 310 });
 
-    panel.add(guiSettings, "selectedChannel", channels)
+    const channelsFolder = panel.addFolder("Channels");
+    channelsFolder.open();
+
+    const channelCtrl = channelsFolder
+        .add(guiSettings, "selectedChannel", channels)
         .name("Select Channel")
         .onChange((value) => {
           guiSettings.placeActor = !!channelActors[value];
+          if (placeActorController) {
+            placeActorController.updateDisplay();
+          }
         });
 
-    panel.add({ actorModel: Object.keys(actorModels)[0] }, "actorModel", Object.keys(actorModels))
-        .name("Select Actor Model")
-        .onChange((modelName) => {
-          const selectedPath = actorModels[modelName];
-          loadActor(selectedPath);
-        });
-
-    panel.add(guiSettings, "placeActor")
+    placeActorController = channelsFolder
+        .add(guiSettings, "placeActor")
         .name("Place/Remove Actor")
         .onChange((value) => {
           const channel = guiSettings.selectedChannel;
@@ -292,11 +297,23 @@ onMounted(() => {
                 placeActor(channel);
               } else {
                 guiSettings.placeActor = false;
+                placeActorController.updateDisplay();
               }
             }
           } else {
             removeActor(channel);
           }
+        });
+
+    const actorFolder = panel.addFolder("Actor Models");
+    actorFolder.open();
+
+    actorFolder
+        .add({ actorModel: Object.keys(actorModels)[0] }, "actorModel", Object.keys(actorModels))
+        .name("Select Actor Model")
+        .onChange((modelName) => {
+          const selectedPath = actorModels[modelName];
+          loadActor(selectedPath);
         });
   }
 
