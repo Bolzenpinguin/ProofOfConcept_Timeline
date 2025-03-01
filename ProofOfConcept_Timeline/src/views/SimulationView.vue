@@ -6,14 +6,27 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 
 // *************** Global Variables ***************
-let actorModel: THREE.Group | undefined;
-const channels = ["Channel 1", "Channel 2", "Channel 3", "Channel 4"];
+let actorModel: THREE.Group;
+const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
 const channelActors: Record<string, THREE.Object3D | null> = {
+  "Channel 0": null,
   "Channel 1": null,
   "Channel 2": null,
   "Channel 3": null,
-  "Channel 4": null,
 };
+
+const actorModels = {
+  Cone: "/actor/actor_cone.obj",
+  Cube: "/actor/actor_cube.obj",
+  Cylinder: "/actor/actor_cylinder.obj",
+  Sphere: "/actor/actor_sphere.obj",
+};
+
+const models = {
+  UpperBodyOBJ: "/models/obj/head.obj",
+  UpperBodyGLB: "/models/glb/LeePerrySmith.glb",
+  UpperBodyGLTF: "/models/gltf/human/Male Mannequin4-bl.obj",
+}
 
 const guiSettings = {
   selectedChannel: channels[0],
@@ -30,7 +43,7 @@ onMounted(() => {
   let renderer: THREE.WebGLRenderer;
   let scene: THREE.Scene;
   let camera: THREE.PerspectiveCamera;
-  let meshModel: THREE.Mesh | undefined;
+  let meshModel: THREE.Mesh;
   let raycaster: THREE.Raycaster;
   let line: THREE.Line;
 
@@ -106,19 +119,15 @@ onMounted(() => {
       }
     });
 
-    loadModel("/models/obj/head.obj");
-
-    const actorModels = {
-      Cone: "/actor/actor_cone.obj",
-      Cube: "/actor/actor_cube.obj",
-      Cylinder: "/actor/actor_cylinder.obj",
-      Sphere: "/actor/actor_sphere.obj",
-    };
+    // TODO: Laden ander Models + Skalierung
+    loadModel(models.UpperBodyOBJ);
 
     loadActor(actorModels.Cone); // default Actor Model
 
     createSettingsPanel(actorModels);
   }
+
+  // *************** Functions ***************
 
   function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -221,6 +230,16 @@ onMounted(() => {
     actorClone.quaternion.copy(quat);
 
     actorClone.scale.set(1, 1, 1); // scale the actors
+
+    // Color of actor
+    // TODO Farbe änderen -> API ???
+    actorClone.traverse((child) => {
+      if (child.material) {
+        child.material.color.setHex(0xff0000);
+      }
+    })
+
+
     scene.add(actorClone);
     channelActors[channel] = actorClone;
     // TODO Speichern der Positionen der Actors
@@ -248,7 +267,7 @@ onMounted(() => {
   }
 
   function createSettingsPanel(actorModels: Record<string, string>) {
-    const panel = new GUI({ width: 310 });
+    const panel = new GUI({ width: 300 });
 
     const channelsFolder = panel.addFolder("Channels");
     channelsFolder.open();
@@ -301,8 +320,5 @@ onMounted(() => {
 </template>
 
 <style scoped>
-#three-container {
-  width: 100%;
-  height: 100vh;
-}
+
 </style>
