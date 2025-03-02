@@ -6,9 +6,13 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 
 // *************** Global Variables ***************
-let actorModel: THREE.Group;
+let actorModel;
+let currentModel = null;
+
 const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
-const channelActors: Record<string, THREE.Object3D | null> = {
+const models = ["UpperBody", "Body"];
+
+const channelActors = {
   "Channel 0": null,
   "Channel 1": null,
   "Channel 2": null,
@@ -22,13 +26,14 @@ const actorModels = {
   Sphere: "/actor/actor_sphere.obj",
 };
 
-const models = {
-  UpperBodyOBJ: "/models/obj/head.obj",
+const modelsPath = {
+  UpperBody: "/models/obj/head.obj",
   UpperBodyGLB: "/models/glb/LeePerrySmith.glb",
-  UpperBodyGLTF: "/models/gltf/human/Male Mannequin4-bl.obj",
+  Body: "/models/gltf/human/male-mannequin.obj",
 }
 
 const guiSettings = {
+  selectedModel: models[0],
   selectedChannel: channels[0],
 };
 
@@ -119,9 +124,7 @@ onMounted(() => {
       }
     });
 
-    // TODO: Laden ander Models + Skalierung
-    loadModel(models.UpperBodyOBJ);
-
+    loadModel(modelsPath.UpperBody); // default Model
     loadActor(actorModels.Cone); // default Actor Model
 
     createSettingsPanel(actorModels);
@@ -174,6 +177,12 @@ onMounted(() => {
   }
 
   function loadModel(modelPath: string) {
+
+    if (currentModel != null) {
+      scene.remove(currentModel);
+      currentModel = null;
+    }
+
     const extension = modelPath.split('.').pop()?.toLowerCase();
     if (!extension) return;
 
@@ -189,6 +198,7 @@ onMounted(() => {
           alert("No Mesh found in the loaded OBJ model!");
           return;
         }
+        currentModel = obj;
         scene.add(obj);
         meshModel.scale.multiplyScalar(8);
       });
@@ -268,6 +278,16 @@ onMounted(() => {
 
   function createSettingsPanel(actorModels: Record<string, string>) {
     const panel = new GUI({ width: 300 });
+
+    const modelFolder = panel.addFolder("Models");
+    modelFolder.open();
+
+    modelFolder
+        .add(guiSettings, "selectedModel", models)
+        .name("Select Model")
+        .onChange((selectedModel) => {
+          loadModel(modelsPath[selectedModel]);
+        });
 
     const channelsFolder = panel.addFolder("Channels");
     channelsFolder.open();
