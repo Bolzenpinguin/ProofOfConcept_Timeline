@@ -7,6 +7,7 @@ import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 
 // *************** Global Variables ***************
 let actorModel;
+let actorModelName = "";
 let currentModel = null;
 
 const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
@@ -17,6 +18,33 @@ const channelActors = {
   "Channel 1": null,
   "Channel 2": null,
   "Channel 3": null,
+};
+
+const channelPositions = {
+  "Channel 0": {
+    x: null,
+    y: null,
+    z: null,
+    actorModel: null,
+  },
+  "Channel 1": {
+    x: null,
+    y: null,
+    z: null,
+    actorModel: null,
+  },
+  "Channel 2": {
+    x: null,
+    y: null,
+    z: null,
+    actorModel: null,
+  },
+  "Channel 3": {
+    x: null,
+    y: null,
+    z: null,
+    actorModel: null,
+  },
 };
 
 const actorModels = {
@@ -37,8 +65,24 @@ const guiSettings = {
   selectedChannel: channels[0],
 };
 
+async function loadActorPositions() {
+  try {
+    const response = await fetch('/src/channelActors_.json'); // check if json exits
+
+    const data = await response.json();
+    console.log("JSON loaded:", data);
+    localStorage.setItem("channelActors", JSON.stringify(data)); // loads the data into local storage
+  } catch (e) {
+    // create empty storage
+    localStorage.setItem("channelActors", JSON.stringify(channelPositions));
+  }
+}
+
 // *************** Main Code ***************
 onMounted(() => {
+
+  loadActorPositions();
+
   const container = document.getElementById("three-container");
   if (!container) {
     console.error("Container element not found!");
@@ -69,6 +113,22 @@ onMounted(() => {
   init();
 
   function init() {
+
+/*
+    try {
+      if (!data || Object.keys(data).length === 0) {
+        console.log("JSON file is missing or empty.");
+      } else {
+        console.log("JSON loaded:", data);
+      }
+    } catch (e) {
+      console.error("Error reading JSON:", e);
+    }
+
+
+ */
+
+
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -125,7 +185,7 @@ onMounted(() => {
     });
 
     loadModel(modelsPath.UpperBody); // default Model
-    loadActor(actorModels.Cone); // default Actor Model
+    loadActor(actorModels.Cone, "Cone"); // default Actor Model
 
     createSettingsPanel(actorModels);
   }
@@ -207,18 +267,12 @@ onMounted(() => {
     }
   }
 
-  function loadActor(actorPath: string) {
-    const extension = actorPath.split('.').pop()?.toLowerCase();
-    if (!extension) return;
-
-    if (extension === "obj") {
-      const loader = new OBJLoader();
-      loader.load(actorPath, (obj) => {
-        actorModel = obj.clone();
-      });
-    } else {
-      alert("Wrong Format, only .obj supported.");
-    }
+  function loadActor(actorPath: string, modelName: string) {
+    const loader = new OBJLoader();
+    loader.load(actorPath, (obj) => {
+      actorModel = obj.clone();
+      actorModelName = modelName;
+    });
   }
 
   function placeActor(channel: string) {
@@ -242,18 +296,23 @@ onMounted(() => {
     actorClone.scale.set(1, 1, 1); // scale the actors
 
     // Color of actor
-    // TODO Farbe änderen -> API ???
+    // TODO Farbe änderen -> API ??? -> mit in JSON packen? 
     actorClone.traverse((child) => {
       if (child.material) {
         child.material.color.setHex(0xff0000);
       }
     })
 
-
     scene.add(actorClone);
     channelActors[channel] = actorClone;
-    // TODO Speichern der Positionen der Actors
-    console.log(`Actor placed at ${channel} on position:`, position);
+
+    channelPositions[channel] = {
+      x: position.x,
+      y: position.y,
+      z: position.z,
+      actorModel: actorModelName
+    }
+    localStorage.setItem("channelActors", JSON.stringify(channelPositions));
   }
 
   function removeActor(channel: string) {
@@ -276,9 +335,30 @@ onMounted(() => {
     }
   }
 
+  function downloadJsonFile() {
+    const data = localStorage.getItem("channelActors");
+
+    if (!data) {
+      alert("No data in localStorage!");
+      return;
+    }
+
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "channelActors.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   function createSettingsPanel(actorModels: Record<string, string>) {
     const panel = new GUI({ width: 300 });
 
+    // **** Model Folder ****
     const modelFolder = panel.addFolder("Models");
     modelFolder.open();
 
@@ -289,6 +369,7 @@ onMounted(() => {
           loadModel(modelsPath[selectedModel]);
         });
 
+    // **** Channel Folder ****
     const channelsFolder = panel.addFolder("Channels");
     channelsFolder.open();
 
@@ -299,6 +380,23 @@ onMounted(() => {
           updateRemoveActorButton();
         });
 
+    // **** Create Actor Folder ****
+    const actorFolder = panel.addFolder("Actor Models");
+    actorFolder.open();
+
+    // **** Switch Actor Models ****
+    const modelOptions = Object.keys(actorModels);
+    const actorGUIState = { actorModel: modelOptions[0] };
+
+    actorFolder
+        .add(actorGUIState, "actorModel", Object.keys(actorModels))
+        .name("Select Actor Model")
+        .onChange((modelName: string) => {
+          const selectedPath = actorModels[modelName];
+          loadActor(selectedPath, modelName);
+        });
+
+    // **** Delete Placed Actor ****
     const removeActorGUI = {
       removeActor: () => {
         const channel = guiSettings.selectedChannel;
@@ -307,25 +405,23 @@ onMounted(() => {
       },
     };
 
-    removeActorController = channelsFolder
+    removeActorController = actorFolder
         .add(removeActorGUI, "removeActor")
         .name("Remove Actor");
 
     updateRemoveActorButton();
 
-    const actorFolder = panel.addFolder("Actor Models");
-    actorFolder.open();
-
-    const modelOptions = Object.keys(actorModels);
-    const actorGUIState = { actorModel: modelOptions[0] };
+    // **** Save Position ****
+    const saveJSON = {
+      downloadJson: () => {
+        downloadJsonFile();
+      },
+    };
 
     actorFolder
-        .add(actorGUIState, "actorModel", modelOptions)
-        .name("Select Actor Model")
-        .onChange((modelName: string) => {
-          const selectedPath = actorModels[modelName];
-          loadActor(selectedPath);
-        });
+        .add(saveJSON, "downloadJson")
+        .name("Save Actor Positions");
+
   }
 
   function render() {
