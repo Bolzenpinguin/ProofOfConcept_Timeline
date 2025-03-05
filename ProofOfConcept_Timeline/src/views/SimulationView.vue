@@ -67,6 +67,7 @@ const modelsPath = {
 const guiSettings = {
   selectedModel: models[0],
   selectedChannel: channels[0],
+  selectedColor: "#ff000",
 };
 
 async function loadActorPositions() {
@@ -298,10 +299,11 @@ onMounted(() => {
     actorClone.scale.set(1, 1, 1); // scale the actors
 
     // Color of actor
-    // TODO Farbe änderen -> API ??? -> mit in JSON packen? 
+    // TODO Farbe änderen -> API ??? -> mit in JSON packen?
+    const actorColor = guiSettings.selectedColor;
     actorClone.traverse((child) => {
       if (child.material) {
-        child.material.color.setHex(channelPositions[channel].color);
+        child.material = new THREE.MeshStandardMaterial({color: actorColor});
       }
     })
 
@@ -313,7 +315,7 @@ onMounted(() => {
       y: position.y,
       z: position.z,
       actorModel: actorModelName,
-      actorColor: channelPositions[channel].color //TODO -> Slider for change
+      actorColor: actorColor
     }
     localStorage.setItem("channelActors", JSON.stringify(channelPositions));
   }
@@ -406,6 +408,24 @@ onMounted(() => {
         .onChange((modelName: string) => {
           const selectedPath = actorModels[modelName];
           loadActor(selectedPath, modelName);
+        });
+
+    // **** Change Color ****
+    actorFolder
+        .addColor(guiSettings, "selectedColor")
+        .name("Select Actor Color")
+        .onChange((newColor) => {
+          const channel = guiSettings.selectedChannel;
+          channelPositions[channel].actorColor = newColor;
+
+          if (channelActors[channel]) {
+            channelActors[channel].traverse((child) => {
+              if (child.isMesh) {
+                child.material.color.set(newColor);
+              }
+            });
+          }
+          localStorage.setItem("channelActors", JSON.stringify(channelPositions));
         });
 
     // **** Delete Placed Actor ****
