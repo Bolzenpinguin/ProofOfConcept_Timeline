@@ -7,8 +7,9 @@ import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 
 // *************** Global Variables ***************
 let actorModel;
-let actorModelName = "";
+let actorModelName: string = "";
 let currentModel = null;
+const pathDefaultJSON: string = '/src/json/channelActors_.json';
 
 const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
 const models = ["UpperBody", "Body"];
@@ -67,26 +68,25 @@ const modelsPath = {
 const guiSettings = {
   selectedModel: models[0],
   selectedChannel: channels[0],
-  selectedColor: "#ff000",
+  selectedColor: "#ffffff",
 };
 
-async function loadActorPositions() {
+async function loadActorPositions(path: string) {
   try {
-    const response = await fetch('/src/json/channelActors.json'); // check if json exits
-
+    // TODO -> wie kann man das in die load actor positions reinmachen?
+    const response = await fetch(path); // check if json exits
     const data = await response.json();
-    console.log("JSON loaded:", data);
     localStorage.setItem("channelActors", JSON.stringify(data)); // loads the data into local storage
+    console.log(localStorage)
   } catch (e) {
-    // create empty storage
+    // create empty storage if there is no json data
     localStorage.setItem("channelActors", JSON.stringify(channelPositions));
+    console.log(localStorage)
   }
 }
 
 // *************** Main Code ***************
 onMounted(() => {
-
-  loadActorPositions();
 
   const container = document.getElementById("three-container");
   if (!container) {
@@ -189,7 +189,7 @@ onMounted(() => {
 
     loadModel(modelsPath.UpperBody); // default Model
     loadActor(actorModels.Cone, "Cone"); // default Actor Model
-
+    loadActorPositions(pathDefaultJSON); // load and check in local storage JSON
     createSettingsPanel(actorModels);
   }
 
@@ -299,7 +299,6 @@ onMounted(() => {
     actorClone.scale.set(1, 1, 1); // scale the actors
 
     // Color of actor
-    // TODO Farbe änderen -> API ??? -> mit in JSON packen?
     const actorColor = guiSettings.selectedColor;
     actorClone.traverse((child) => {
       if (child.material) {
@@ -442,6 +441,40 @@ onMounted(() => {
         .name("Remove Actor");
 
     updateRemoveActorButton();
+
+    // **** Load Placed Actor ****
+    const loadJSON = {
+      loadJson: () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/json";
+        input.addEventListener("change", (event: Event) => {
+          const target = event.target as HTMLInputElement;
+          if (!target.files || target.files.length === 0) {
+            return;
+          }
+
+          const file = target.files[0];
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            try {
+              const contents = JSON.parse(e.target?.result as string);
+              localStorage.setItem("channelActors", JSON.stringify(contents));
+            } catch (error) {
+              alert("Wrong file!");
+            }
+          };
+          reader.readAsText(file);
+        });
+
+        input.click();
+      },
+    };
+
+    actorFolder
+        .add(loadJSON, "loadJson")
+        .name("Load Actor Positions");
+
 
     // **** Save Position ****
     const saveJSON = {
