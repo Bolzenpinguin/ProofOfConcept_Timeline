@@ -26,24 +26,28 @@ const channelPositions = {
     y: null,
     z: null,
     actorModel: null,
+    actorColor: null
   },
   "Channel 1": {
     x: null,
     y: null,
     z: null,
     actorModel: null,
+    actorColor: null
   },
   "Channel 2": {
     x: null,
     y: null,
     z: null,
     actorModel: null,
+    actorColor: null
   },
   "Channel 3": {
     x: null,
     y: null,
     z: null,
     actorModel: null,
+    actorColor: null
   },
 };
 
@@ -67,7 +71,7 @@ const guiSettings = {
 
 async function loadActorPositions() {
   try {
-    const response = await fetch('/src/channelActors_.json'); // check if json exits
+    const response = await fetch('/src/json/channelActors.json'); // check if json exits
 
     const data = await response.json();
     console.log("JSON loaded:", data);
@@ -177,8 +181,6 @@ onMounted(() => {
           if (!channelActors[channel]) {
             placeActor(channel);
             updateRemoveActorButton();
-          } else {
-            console.log(`Actor already in ${channel}.`);
           }
         }
       }
@@ -299,7 +301,7 @@ onMounted(() => {
     // TODO Farbe änderen -> API ??? -> mit in JSON packen? 
     actorClone.traverse((child) => {
       if (child.material) {
-        child.material.color.setHex(0xff0000);
+        child.material.color.setHex(channelPositions[channel].color);
       }
     })
 
@@ -310,7 +312,8 @@ onMounted(() => {
       x: position.x,
       y: position.y,
       z: position.z,
-      actorModel: actorModelName
+      actorModel: actorModelName,
+      actorColor: channelPositions[channel].color //TODO -> Slider for change
     }
     localStorage.setItem("channelActors", JSON.stringify(channelPositions));
   }
@@ -319,8 +322,17 @@ onMounted(() => {
     if (channelActors[channel]) {
       scene.remove(channelActors[channel]!);
       channelActors[channel] = null;
-      // TODO Löschen der Positionen der Actors
-      console.log(`Actor removed from ${channel}`);
+
+      channelPositions[channel] = {
+        x: null,
+        y: null,
+        z: null,
+        actorModel: null,
+        actorColor: null
+      }
+      // Update local Storage
+      localStorage.setItem("channelActors", JSON.stringify(channelPositions));
+
     }
   }
 
