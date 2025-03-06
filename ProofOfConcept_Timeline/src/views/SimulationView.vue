@@ -371,7 +371,24 @@ onMounted(() => {
     channelsFolder
         .add(guiSettings, "selectedChannel", channels)
         .name("Select Channel")
-        .onChange(() => {
+        .onChange((selectedChannel: string) => {
+          const channelData = channelPositions[selectedChannel];
+          // Update the right color of the actor
+          if (channelData && channelData.actorColor) {
+            guiSettings.selectedColor = channelData.actorColor;
+          } else {
+            guiSettings.selectedColor = "#ffffff";
+          }
+          colorController.updateDisplay();
+
+          // Update the actor model
+          if (channelData && channelData.actorModel) {
+            actorGUIState.actorModel = channelData.actorModel;
+          } else {
+            actorGUIState.actorModel = Object.keys(actorModels)[0];
+          }
+          actorModelController.updateDisplay();
+
           updateRemoveActorButton();
         });
 
@@ -383,7 +400,7 @@ onMounted(() => {
     const modelOptions = Object.keys(actorModels);
     const actorGUIState = { actorModel: modelOptions[0] };
 
-    actorFolder
+    const actorModelController = actorFolder
         .add(actorGUIState, "actorModel", Object.keys(actorModels))
         .name("Select Actor Model")
         .onChange((modelName: string) => {
@@ -499,7 +516,6 @@ onMounted(() => {
       if (posData !== null) {
 
         // TODO -> Laden der richtiger Actor Models
-        // TODO -> Löschen der Aktoren mit BTN ermöglichen
         console.log(posData.actorModel);
 
         const modelPath = actorModels[posData.actorModel];
@@ -530,8 +546,11 @@ onMounted(() => {
         })
 
         // update color in gui
-        guiSettings.selectedColor = actorColor;
-        colorController.updateDisplay();
+        if (channel === guiSettings.selectedChannel) {
+          guiSettings.selectedColor = actorColor;
+          colorController.updateDisplay();
+        }
+
 
         scene.add(actorClone);
         channelActors[channel] = actorClone;
@@ -540,6 +559,8 @@ onMounted(() => {
     });
     updateRemoveActorButton();
     removeActorController.updateDisplay();
+
+    console.log(localStorage)
   }
 
 
