@@ -165,8 +165,10 @@ onMounted(() => {
 
     loadModel(modelsPath.UpperBody); // default Model
     loadActor(actorModels.Cone, "Cone"); // default Actor Model
-    loadActorPositions(pathDefaultJSON); // load and check in local storage JSON
     createSettingsPanel(actorModels);
+
+
+    loadActorPositions(pathDefaultJSON); // load and check in local storage JSON
   }
 
   // *************** Functions ***************
@@ -498,7 +500,6 @@ onMounted(() => {
 
         // TODO -> Laden der richtiger Actor Models
         // TODO -> Löschen der Aktoren mit BTN ermöglichen
-        // TODO -> Farbe muss im GUI ersichtlich sein
         console.log(posData.actorModel);
 
         const modelPath = actorModels[posData.actorModel];
@@ -536,7 +537,9 @@ onMounted(() => {
         channelActors[channel] = actorClone;
 
       }
-    })
+    });
+    updateRemoveActorButton();
+    removeActorController.updateDisplay();
   }
 
 
