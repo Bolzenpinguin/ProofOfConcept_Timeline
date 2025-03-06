@@ -71,19 +71,9 @@ const guiSettings = {
   selectedColor: "#ffffff",
 };
 
-async function loadActorPositions(path: string) {
-  try {
-    // TODO -> wie kann man das in die load actor positions reinmachen?
-    const response = await fetch(path); // check if json exits
-    const data = await response.json();
-    localStorage.setItem("channelActors", JSON.stringify(data)); // loads the data into local storage
-    console.log(localStorage)
-  } catch (e) {
-    // create empty storage if there is no json data
-    localStorage.setItem("channelActors", JSON.stringify(channelPositions));
-    console.log(localStorage)
-  }
-}
+
+
+
 
 // *************** Main Code ***************
 onMounted(() => {
@@ -118,21 +108,6 @@ onMounted(() => {
   init();
 
   function init() {
-
-/*
-    try {
-      if (!data || Object.keys(data).length === 0) {
-        console.log("JSON file is missing or empty.");
-      } else {
-        console.log("JSON loaded:", data);
-      }
-    } catch (e) {
-      console.error("Error reading JSON:", e);
-    }
-
-
- */
-
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -313,6 +288,7 @@ onMounted(() => {
       x: position.x,
       y: position.y,
       z: position.z,
+      normals: quat,
       actorModel: actorModelName,
       actorColor: actorColor
     }
@@ -336,6 +312,9 @@ onMounted(() => {
 
     }
   }
+
+  // *********************************************************************** AB HIER GUI ***********************************************************************
+  // In Zeile 191 wird createSettingsPanel aufgerufen
 
   function updateRemoveActorButton() {
     if (!removeActorController) return;
@@ -455,11 +434,13 @@ onMounted(() => {
           }
 
           const file = target.files[0];
+          const blobURL = URL.createObjectURL(file);
           const reader = new FileReader();
           reader.onload = function (e) {
             try {
               const contents = JSON.parse(e.target?.result as string);
               localStorage.setItem("channelActors", JSON.stringify(contents));
+              loadActorPositions(blobURL); // load and place actor from json
             } catch (error) {
               alert("Wrong file!");
             }
@@ -488,6 +469,64 @@ onMounted(() => {
         .name("Save Actor Positions");
 
   }
+
+  // *********************************************************************** BIS HIER GUI ***********************************************************************
+
+  async function loadActorPositions(path: string) {
+    try {
+      const response = await fetch(path); // check if json exits
+      const data = await response.json();
+      localStorage.setItem("channelActors", JSON.stringify(data)); // loads the data into local storage
+      console.log(data);
+      placeActorFromJSON(data);
+
+    } catch (e) {
+      // create empty storage if there is no json data
+      localStorage.setItem("channelActors", JSON.stringify(channelPositions));
+    }
+  }
+
+  function placeActorFromJSON(data: any) {
+
+    Object.keys(data).forEach((channel) => {
+      const posData = data[channel];
+      if (posData.x !== null && posData.y !== null && posData.z !== null) {
+
+
+        // TODO -> Laden der ichtiger Actor Modelös
+        console.log(posData.actorModel);
+
+
+
+        const actorClone = actorModel.clone();
+        actorClone.position.set(posData.x, posData.y, posData.z);
+
+        // rotate actors on normales -> get value from JSON
+        const quats = new THREE.Quaternion(
+            posData.normals[0],
+            posData.normals[1],
+            posData.normals[2],
+            posData.normals[3]
+        )
+        actorClone.quaternion.copy(quats);
+
+        actorClone.scale.set(1, 1, 1); // scale the actors
+
+        // Color of actor
+        const actorColor = posData.actorColor;
+        console.log(actorColor);
+        actorClone.traverse((child) => {
+          if (child.material) {
+            child.material = new THREE.MeshStandardMaterial({color: actorColor});
+          }
+        })
+
+        scene.add(actorClone);
+        channelActors[channel] = actorClone;
+      }
+    })
+  }
+
 
   function render() {
     renderer.render(scene, camera);
