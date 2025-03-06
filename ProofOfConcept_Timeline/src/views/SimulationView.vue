@@ -10,6 +10,7 @@ let actorModel;
 let actorModelName: string = "";
 let currentModel = null;
 const pathDefaultJSON: string = '/src/json/channelActors_.json';
+let colorController;
 
 const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
 const models = ["UpperBody", "Body"];
@@ -389,7 +390,7 @@ onMounted(() => {
         });
 
     // **** Change Color ****
-    actorFolder
+    colorController = actorFolder
         .addColor(guiSettings, "selectedColor")
         .name("Select Actor Color")
         .onChange((newColor) => {
@@ -472,12 +473,15 @@ onMounted(() => {
 
   // *********************************************************************** BIS HIER GUI ***********************************************************************
 
+
+
+
+
   async function loadActorPositions(path: string) {
     try {
       const response = await fetch(path); // check if json exits
       const data = await response.json();
       localStorage.setItem("channelActors", JSON.stringify(data)); // loads the data into local storage
-      console.log(data);
       placeActorFromJSON(data);
 
     } catch (e) {
@@ -490,12 +494,16 @@ onMounted(() => {
 
     Object.keys(data).forEach((channel) => {
       const posData = data[channel];
-      if (posData.x !== null && posData.y !== null && posData.z !== null) {
+      if (posData !== null) {
 
-
-        // TODO -> Laden der ichtiger Actor Modelös
+        // TODO -> Laden der richtiger Actor Models
+        // TODO -> Löschen der Aktoren mit BTN ermöglichen
+        // TODO -> Farbe muss im GUI ersichtlich sein
         console.log(posData.actorModel);
 
+        const modelPath = actorModels[posData.actorModel];
+        console.log(modelPath);
+        loadActor(modelPath, posData.actorModel);
 
 
         const actorClone = actorModel.clone();
@@ -514,15 +522,19 @@ onMounted(() => {
 
         // Color of actor
         const actorColor = posData.actorColor;
-        console.log(actorColor);
         actorClone.traverse((child) => {
           if (child.material) {
             child.material = new THREE.MeshStandardMaterial({color: actorColor});
           }
         })
 
+        // update color in gui
+        guiSettings.selectedColor = actorColor;
+        colorController.updateDisplay();
+
         scene.add(actorClone);
         channelActors[channel] = actorClone;
+
       }
     })
   }
