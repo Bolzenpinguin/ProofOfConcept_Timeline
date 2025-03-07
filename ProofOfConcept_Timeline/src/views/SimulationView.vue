@@ -260,12 +260,29 @@ onMounted(() => {
     }
   }
 
-  function loadActor(actorPath: string, modelName: string) {
+  function loadActor(
+      actorPath: string,
+      modelName: string,
+      onLoad?: (loadedObject: THREE.Object3D) => void
+  ) {
     const loader = new OBJLoader();
-    loader.load(actorPath, (obj) => {
-      actorModel = obj.clone();
-      actorModelName = modelName;
-    });
+    loader.load(
+        actorPath,
+        (obj) => {
+          // load models at start
+          actorModel = obj;
+          actorModelName = modelName;
+
+          // load models from JSON 
+          if (onLoad) {
+            onLoad(obj);
+          }
+        },
+        undefined,
+        (error) => {
+          console.error("Error loading actor:", error);
+        }
+    );
   }
 
   function placeActor(channel: string) {
@@ -518,7 +535,7 @@ onMounted(() => {
   function placeActorFromJSON(data: any) {
     Object.keys(data).forEach((channel) => {
       const posData = data[channel];
-      if (posData !== null) {
+      if (!posData) return; // skip if no data in JSON
 
         // update channelPositions with JSON
         channelPositions[channel] = {
@@ -530,10 +547,15 @@ onMounted(() => {
           normals: posData.normals
         };
 
-        const modelPath = actorModels[posData.actorModel];
-        loadActor(modelPath, posData.actorModel);
+      const modelPath = actorModels[posData.actorModel];
+      if (!modelPath) {
+        console.warn(`No OBJ path for actor model: ${posData.actorModel}`);
+        return;
+      }
 
-        const actorClone = actorModel.clone();
+      // load actor models
+      loadActor(modelPath, posData.actorModel, (loadedObject) => {
+        const actorClone = loadedObject.clone();
         actorClone.position.set(posData.x, posData.y, posData.z);
 
         // rotate actors on normales -> get value from JSON
@@ -551,7 +573,7 @@ onMounted(() => {
         // color actors
         const actorColor = posData.actorColor;
         actorClone.traverse((child) => {
-          if (child.material) {
+          if (child.isMesh) {
             child.material = new THREE.MeshStandardMaterial({ color: actorColor });
           }
         });
@@ -562,14 +584,13 @@ onMounted(() => {
           colorController.updateDisplay();
         }
 
-        // store actor reference
         scene.add(actorClone);
         channelActors[channel] = actorClone;
-      }
-    });
 
-    updateRemoveActorButton();
-    removeActorController.updateDisplay();
+        updateRemoveActorButton();
+        removeActorController.updateDisplay();
+      });
+    });
   }
 
 
