@@ -385,22 +385,16 @@ onMounted(() => {
         .name("Select Channel")
         .onChange((selectedChannel: string) => {
           const channelData = channelPositions[selectedChannel];
-          // Update the right color of the actor
+          console.log(localStorage.getItem("channelActors"));
+
+          console.log(channelData);
+          // Update the actor color from the loaded JSON if available
           if (channelData && channelData.actorColor) {
             guiSettings.selectedColor = channelData.actorColor;
           } else {
             guiSettings.selectedColor = "#ffffff";
           }
           colorController.updateDisplay();
-
-          // Update the actor model
-          if (channelData && channelData.actorModel) {
-            actorGUIState.actorModel = channelData.actorModel;
-          } else {
-            actorGUIState.actorModel = Object.keys(actorModels)[0];
-          }
-          actorModelController.updateDisplay();
-
           updateRemoveActorButton();
         });
 
@@ -522,18 +516,22 @@ onMounted(() => {
   }
 
   function placeActorFromJSON(data: any) {
-
     Object.keys(data).forEach((channel) => {
       const posData = data[channel];
       if (posData !== null) {
 
-        // TODO -> Laden der richtiger Actor Models
-        console.log(posData.actorModel);
+        // update channelPositions with JSON
+        channelPositions[channel] = {
+          x: posData.x,
+          y: posData.y,
+          z: posData.z,
+          actorModel: posData.actorModel,
+          actorColor: posData.actorColor,
+          normals: posData.normals
+        };
 
         const modelPath = actorModels[posData.actorModel];
-        console.log(modelPath);
         loadActor(modelPath, posData.actorModel);
-
 
         const actorClone = actorModel.clone();
         actorClone.position.set(posData.x, posData.y, posData.z);
@@ -544,18 +542,19 @@ onMounted(() => {
             posData.normals[1],
             posData.normals[2],
             posData.normals[3]
-        )
+        );
         actorClone.quaternion.copy(quats);
 
-        actorClone.scale.set(1, 1, 1); // scale the actors
+        // scale actor
+        actorClone.scale.set(1, 1, 1);
 
-        // Color of actor
+        // color actors
         const actorColor = posData.actorColor;
         actorClone.traverse((child) => {
           if (child.material) {
-            child.material = new THREE.MeshStandardMaterial({color: actorColor});
+            child.material = new THREE.MeshStandardMaterial({ color: actorColor });
           }
-        })
+        });
 
         // update color in gui
         if (channel === guiSettings.selectedChannel) {
@@ -563,16 +562,14 @@ onMounted(() => {
           colorController.updateDisplay();
         }
 
-
+        // store actor reference
         scene.add(actorClone);
         channelActors[channel] = actorClone;
-
       }
     });
+
     updateRemoveActorButton();
     removeActorController.updateDisplay();
-
-    console.log(localStorage)
   }
 
 
