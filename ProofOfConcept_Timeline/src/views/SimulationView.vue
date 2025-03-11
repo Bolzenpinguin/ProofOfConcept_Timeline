@@ -386,10 +386,27 @@ onMounted(() => {
     const modelFolder = panel.addFolder("Models");
     modelFolder.open();
 
-    modelFolder
+    let currentModelSelected = guiSettings.selectedModel;
+    let ignoreModelChange = false; // to determine if the model is getting changed
+    const modelController = modelFolder
         .add(guiSettings, "selectedModel", models)
         .name("Select Model")
         .onChange((selectedModel) => {
+          if (ignoreModelChange) {
+            ignoreModelChange = false; // reset the helper
+            return;
+          }
+          if (selectedModel === currentModelSelected) {
+            return; // abort
+          }
+          const actorsPlaced = Object.values(channelActors).some(actor => actor !== null);
+          if (actorsPlaced) {
+            alert("Model is locked because actors are placed. Please remove actors to change the model.");
+            ignoreModelChange = true;
+            modelController.setValue(currentModelSelected);
+            return;
+          }
+          currentModelSelected = selectedModel;
           loadModel(modelsPath[selectedModel]);
         });
 
@@ -610,7 +627,6 @@ onMounted(() => {
 </script>
 
 <template>
-
 
   <div id="three-container"></div>
 </template>
