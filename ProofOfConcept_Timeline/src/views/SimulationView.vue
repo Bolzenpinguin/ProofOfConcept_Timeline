@@ -520,6 +520,14 @@ onMounted(() => {
 
 
   async function loadActorPositions(path: string) {
+
+    // delete all old actors
+    Object.keys(channelActors).forEach((channel) => {
+      if (channelActors[channel]) {
+        removeActor(channel);
+      }
+    });
+
     try {
       const response = await fetch(path); // check if json exits
       const data = await response.json();
@@ -602,6 +610,8 @@ onMounted(() => {
 </script>
 
 <template>
+
+
   <div id="three-container"></div>
 </template>
 
