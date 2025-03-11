@@ -9,7 +9,7 @@ import Grid from "@/components/Grid.vue";
 import PlaybackIndicator from "@/components/PlaybackIndicator.vue";
 
 import config from "@/config";
-import JsonData from '../json/2024-06-20_Team1_session1.json';
+import JsonData from '/src/json/2024-06-20_Team1_session1.json';
 import PlaybackVisualization from "@/components/PlaybackVisualization.vue";
 import Slider from "@/components/Slider.vue";
 import store, {type BlockSelection} from "@/store";
@@ -308,4 +308,56 @@ export default defineComponent({
      text-transform: uppercase;
    }
 
+   .playbackContainer button:hover {
+     color: #EC660C;
+     background-color: rgba(236, 102, 12, 0.12);
+     border-style: solid;
+     border-color: #EC660C;
+   }
+   
+   .playbackContainer button:active {
+     color: #EC660C;
+     background-color: white;
+     border-style: solid;
+     border-color: #EC660C;
+   }
+
+   .playbackContainer button:disabled {
+     color: white;
+     background-color: rgba(75, 75, 75, 0.49);
+   }
+
+   .playbackContainer button:disabled:hover {
+     border-style: none;
+     cursor: default;
+   }
+   
+   .playbackContainer select {
+     width: 164px;
+     font-weight: 600;
+     font-size: 16px;
+     letter-spacing: 0.1rem;
+     border-radius: 6px;
+     border-style: none;
+     color: white;
+     background-color: #EC660C;
+     text-transform: uppercase;
+     padding-left: 8px;
+   }
+
+   .playbackContainer select option {
+     width: 148px;
+     font-weight: 600;
+     font-size: 16px;
+     letter-spacing: 0.1rem;
+     border-radius: 6px;
+     border-style: none;
+     color: #EC660C;
+     background-color: white;
+   }
+
+   .playbackContainer select option:checked {
+     color: white;
+     background: #EC660C;
+   }
 </style>
