@@ -4,6 +4,8 @@ import { onMounted } from "vue";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+
 
 // *************** TODOs ***************
 /*
@@ -110,6 +112,17 @@ onMounted(() => {
     normal: new THREE.Vector3(),
   };
 
+  // *************** Label for actor ***************
+
+  const labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.domElement.style.position = 'absolute';
+  labelRenderer.domElement.style.top = '0';
+  labelRenderer.domElement.style.pointerEvents = 'none';
+
+
+
+
   const mouse = new THREE.Vector2();
   const intersects: THREE.Intersection[] = [];
 
@@ -127,6 +140,8 @@ onMounted(() => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setAnimationLoop(render);
     container.appendChild(renderer.domElement);
+    labelRenderer.domElement.style.zIndex = '1';
+    container.appendChild(labelRenderer.domElement);
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
@@ -309,9 +324,16 @@ onMounted(() => {
     const actorColor = guiSettings.selectedColor;
     actorClone.traverse((child) => {
       if (child.material) {
-        child.material = new THREE.MeshStandardMaterial({color: actorColor});
+        child.material = new THREE.MeshStandardMaterial({ color: actorColor });
       }
-    })
+    });
+
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'actor-label';
+    labelDiv.textContent = channel; // Label shows channel number
+    const labelObject = new CSS2DObject(labelDiv);
+    labelObject.position.set(0, 7, 0); //offset
+    actorClone.add(labelObject);
 
     scene.add(actorClone);
     channelActors[channel] = actorClone;
@@ -328,8 +350,17 @@ onMounted(() => {
   }
 
   function removeActor(channel: string) {
-    if (channelActors[channel]) {
-      scene.remove(channelActors[channel]!);
+    const actor = channelActors[channel];
+    // remove the label
+    if (actor) {
+      actor.traverse((child) => {
+        if (child instanceof CSS2DObject) {
+          child.element.remove();
+          child.removeFromParent();
+        }
+      });
+
+      scene.remove(actor);
       channelActors[channel] = null;
 
       channelPositions[channel] = {
@@ -621,6 +652,7 @@ onMounted(() => {
 
   function render() {
     renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
   }
 });
 
@@ -632,5 +664,12 @@ onMounted(() => {
 </template>
 
 <style scoped>
-
+:deep(.actor-label) {
+  color: black;
+  font-size: 16px;
+  background-color: white;
+  padding: 2px 4px;
+  border: 1px solid white;
+  border-radius: 4px;
+}
 </style>
