@@ -121,8 +121,6 @@ onMounted(() => {
   labelRenderer.domElement.style.pointerEvents = 'none';
 
 
-
-
   const mouse = new THREE.Vector2();
   const intersects: THREE.Intersection[] = [];
 
@@ -633,6 +631,13 @@ onMounted(() => {
             child.material = new THREE.MeshStandardMaterial({ color: actorColor });
           }
         });
+
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'actor-label';
+        labelDiv.textContent = channel; // Label shows channel number
+        const labelObject = new CSS2DObject(labelDiv);
+        labelObject.position.set(0, 7, 0); //offset
+        actorClone.add(labelObject);
 
         // update color in gui
         if (channel === guiSettings.selectedChannel) {
