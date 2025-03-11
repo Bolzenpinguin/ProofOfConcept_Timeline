@@ -14,6 +14,7 @@ import PlaybackVisualization from "@/components/PlaybackVisualization.vue";
 import Slider from "@/components/Slider.vue";
 import store, {type BlockSelection} from "@/store";
 import ScrollBar from "@/components/ScrollBar.vue";
+import SimulationView from "@/views/SimulationView.vue";
 
 export default defineComponent({
   name: "Timeline",
@@ -235,6 +236,7 @@ export default defineComponent({
     }
   },
   components: {
+    SimulationView,
     ScrollBar,
     Slider,
     PlaybackVisualization,
@@ -246,42 +248,53 @@ export default defineComponent({
 </script>
 
 <template>
-  <div class="playbackContainer">
-    <v-btn v-show="!isPlaying" @click="startPlayback">Play</v-btn>
-    <v-btn v-show="isPlaying" @click="stopPlayback">Stop</v-btn>
-    <v-btn :disabled="selectedJson == loadedJson" @click="loadFile">Load File</v-btn>
-    <select id="fileSelect" v-model="selectedJson">      
-        <option v-for="(file, index) in jsonData" :key="index" :value="file">{{file.metadata.name}}</option>      
-    </select>
-    <v-btn @click="changeTrackCount(1)">Add Track</v-btn>
-    <v-btn @click="changeTrackCount(-1)">Remove Track</v-btn>
-    <v-btn @click="dialog = true">Open Visualization</v-btn>
+  <div class="main-container">
+
+    <div class="timeline-container">
+      <div class="playbackContainer">
+        <v-btn v-show="!isPlaying" @click="startPlayback">Play</v-btn>
+        <v-btn v-show="isPlaying" @click="stopPlayback">Stop</v-btn>
+        <v-btn :disabled="selectedJson == loadedJson" @click="loadFile">Load File</v-btn>
+        <select id="fileSelect" v-model="selectedJson">
+          <option v-for="(file, index) in jsonData" :key="index" :value="file">{{file.metadata.name}}</option>
+        </select>
+        <v-btn @click="changeTrackCount(1)">Add Track</v-btn>
+        <v-btn @click="changeTrackCount(-1)">Remove Track</v-btn>
+        <v-btn @click="dialog = true">Open Visualization</v-btn>
+      </div>
+      <Slider></Slider>
+      <ScrollBar></ScrollBar>
+      <Grid :track-count="trackCount"></Grid>
+      <div v-for="trackId in Array.from({ length: trackCount }, (_, i) => i)" :key="trackId">
+        <Track :track-id="trackId" :blocks="blocks[trackId] || []"/>
+      </div>
+      <PlaybackIndicator :current-time="currentTime" :total-duration="totalDuration" :track-count="trackCount"></PlaybackIndicator>
+
+      <!--Visualization Dialog-->
+      <v-dialog max-width="auto" height="70%" v-model="dialog">
+        <template v-slot:default="{ isActive }">
+          <v-card title="Visualization">
+            <v-card-text>
+              <PlaybackVisualization :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></PlaybackVisualization>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn
+                  text="Close"
+                  @click="isActive.value = false"
+              ></v-btn>
+            </v-card-actions>
+          </v-card>
+        </template>
+      </v-dialog>
+    </div>
+
+    <div class="simulation-container">
+      <SimulationView></SimulationView>
+    </div>
   </div>
-  <Slider></Slider>
-  <ScrollBar></ScrollBar>
-  <Grid :track-count="trackCount"></Grid>
-  <div v-for="trackId in Array.from({ length: trackCount }, (_, i) => i)" :key="trackId">
-    <Track :track-id="trackId" :blocks="blocks[trackId] || []"/>
-  </div>
-  <PlaybackIndicator :current-time="currentTime" :total-duration="totalDuration" :track-count="trackCount"></PlaybackIndicator>
-  
-  <!--Visualization Dialog-->
-  <v-dialog max-width="auto" height="70%" v-model="dialog">
-    <template v-slot:default="{ isActive }">
-      <v-card title="Visualization">
-        <v-card-text>
-          <PlaybackVisualization :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></PlaybackVisualization>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-              text="Close"
-              @click="isActive.value = false"
-          ></v-btn>
-        </v-card-actions>
-      </v-card>
-    </template>
-  </v-dialog>
+
+
 </template>
 
 <style scoped>
@@ -308,4 +321,10 @@ export default defineComponent({
      text-transform: uppercase;
    }
 
+   .main-container {
+     display: flex;
+   }
+
+   .simulation-container {
+   }
 </style>
