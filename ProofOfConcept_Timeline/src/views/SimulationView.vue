@@ -125,7 +125,7 @@ onMounted(() => {
   // *************** Label for actor ***************
 
   const labelRenderer = new CSS2DRenderer();
-  labelRenderer.setSize(window.innerWidth *0.5, window.innerHeight *0.5);
+  labelRenderer.setSize(window.innerWidth , window.innerHeight);
   labelRenderer.domElement.style.position = 'absolute';
   labelRenderer.domElement.style.top = '0';
   labelRenderer.domElement.style.pointerEvents = 'none';
@@ -145,14 +145,14 @@ onMounted(() => {
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth *0.5, window.innerHeight *0.5);
+    renderer.setSize(window.innerWidth * 0.5, window.innerHeight *0.5 );
     renderer.setAnimationLoop(render);
     container.appendChild(renderer.domElement);
     labelRenderer.domElement.style.zIndex = '1';
     container.appendChild(labelRenderer.domElement);
 
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, (window.innerWidth * 0.5) / (window.innerHeight * 0.5), 1, 1000);
+    camera = new THREE.PerspectiveCamera(45, (window.innerWidth ) / (window.innerHeight), 1, 1000);
     camera.position.z = 120;
     scene.add(new THREE.AmbientLight(0x666666));
 
@@ -422,7 +422,8 @@ onMounted(() => {
   }
 
   function createSettingsPanel(actorModels: Record<string, string>) {
-    const panel = new GUI({ width: 300 });
+    const simuID = document.getElementById("simuGUI");
+    const panel = new GUI({ container: simuID , width: 450 });
 
     // **** Model Folder ****
     const modelFolder = panel.addFolder("Models");
@@ -574,10 +575,6 @@ onMounted(() => {
 
   // *********************************************************************** BIS HIER GUI ***********************************************************************
 
-
-
-
-
   async function loadActorPositions(path: string) {
 
     // delete all old actors
@@ -667,7 +664,6 @@ onMounted(() => {
     });
   }
 
-
   function render() {
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
@@ -677,7 +673,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div id="three-container" style="width: 100%; height: 100%;"> </div>
+  <div id="three-container"> </div>
 </template>
 
 <style scoped>
@@ -688,5 +684,10 @@ onMounted(() => {
   padding: 2px 4px;
   border: 1px solid white;
   border-radius: 4px;
+}
+
+#three-container {
+  position: relative;
+  right: 100em;
 }
 </style>

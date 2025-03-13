@@ -280,6 +280,14 @@ export default defineComponent({
           <v-card title="Visualization">
             <v-card-text>
               <PlaybackVisualization :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></PlaybackVisualization>
+              <!--Simulation View-->
+              <div class="simulation-container">
+                <div id="simuGUI"></div>
+                <div class="view-container">
+                  <SimulationView :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></SimulationView>
+                </div>
+              </div>
+
             </v-card-text>
             <v-card-actions>
               <v-spacer></v-spacer>
@@ -292,13 +300,7 @@ export default defineComponent({
         </template>
       </v-dialog>
     </div>
-
-    <!--Simulation View-->
-    <div class="simulation-container">
-      <SimulationView :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></SimulationView>
-    </div>
   </div>
-
 
 </template>
 
@@ -326,18 +328,21 @@ export default defineComponent({
      text-transform: uppercase;
    }
 
-   .main-container {
+   #simuGUI {
      display: flex;
-     width: 100%;
-   }
+     justify-content: right;
+     z-index: 999;
+     position: relative;
+     left: 110rem;
 
-   .timeline-container {
-     width: 50%;
-     box-sizing: border-box;
    }
-
    .simulation-container {
-      width: 50%;
-      box-sizing: border-box;
+     display: flex;
+     align-items: flex-start;
+     gap: 12px;
+   }
+
+   .view-container {
+     margin-left: auto;
    }
 </style>
