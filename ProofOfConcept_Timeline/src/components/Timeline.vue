@@ -40,24 +40,24 @@ export default defineComponent({
     this.selectedJson = JsonData[0];
     this.loadFile();
     const store = useStore();
-    
+
     let isDragging = false;
     let selectionStart = { x: 0, y: 0 };
     let selectionEnd = { x: 0, y: 0 };
     const selectedBlocks: BlockSelection[] = [];
-    
-    document.addEventListener('keydown', (event: KeyboardEvent) => {      
+
+    document.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.shiftKey && !store.state.isPressingShift) {
         store.dispatch('toggleShiftValue');
       }
     });
-    
-    document.addEventListener('keyup', (event: KeyboardEvent) => {    
+
+    document.addEventListener('keyup', (event: KeyboardEvent) => {
       if (event.key == "Shift" && store.state.isPressingShift) {
         store.dispatch('toggleShiftValue');
       }
     });
-    
+
     // multiselection by dragging
     pixiApp.canvas.addEventListener('mousedown', (event: MouseEvent) => {
       if (event.button === 0 && !store.state.isInteracting) {
@@ -67,7 +67,7 @@ export default defineComponent({
         drawSelectionBox();
       }
     });
-    
+
     pixiApp.canvas.addEventListener('mousemove', (event: MouseEvent) => {
       if (!isDragging) return;
       selectionEnd = { x: event.clientX, y: event.clientY };
@@ -107,7 +107,7 @@ export default defineComponent({
     function selectRectanglesWithin(): void {
       selectedBlocks.length = 0;
       let { x, y, width, height } = getBoundingBox();
-      
+
       // need to adjust coordinates, to be in canvas
       y -= pixiApp.canvas.getBoundingClientRect().top;
       // adjust for scrolling
@@ -118,7 +118,7 @@ export default defineComponent({
       const endTrack = Math.floor((y+height)/config.trackHeight);
       for (let trackId = startTrack; trackId <= endTrack; trackId++) {
         const blocks = store.state.blocks[trackId];
-        if (!blocks) continue;        
+        if (!blocks) continue;
         blocks.forEach((block: BlockDTO, index: number) => {
           if ((block.rect.x + block.rect.width) >= x && block.rect.x <= (x + width) && block.rect.y <= (y + height) && block.rect.y + block.rect.height >= y) {
             const selection: BlockSelection = {trackId: trackId, index: index, uid: block.rect.uid};
@@ -144,11 +144,11 @@ export default defineComponent({
   methods: {
     loadJson() {
       console.debug("loading: ", this.loadedJson);
-      const parser = new InstructionParser(this.loadedJson);      
+      const parser = new InstructionParser(this.loadedJson);
       this.blocks = parser.parseInstructionsToRectangles();
       this.trackCount = Object.keys(this.blocks).reduce((a, b) => Math.max(a, parseInt(b)), -Infinity) + 1;
       store.dispatch('setTrackCount', this.trackCount - 1);
-      
+
       let accumulatedTime = 0;
       this.instructions = this.loadedJson.instructions.map((instruction: any) => {
         if (instruction.wait) {
@@ -159,10 +159,10 @@ export default defineComponent({
         }
         return new Instruction(instruction);
       });
-      
+
       this.totalDuration = accumulatedTime;
       this.calculateInitialZoom();
-      
+
       console.debug("totalDuration: ", this.totalDuration, " ms");
       console.debug("trackCount: ", this.trackCount);
       console.debug("Instructions: ", this.instructions);
@@ -179,14 +179,14 @@ export default defineComponent({
       console.debug("totalDuration:", durationInSeconds.toFixed(2),"s");
       console.debug("durationInPixels", durationInPixels);
       console.debug("zoom: ", zoom);
-      
+
       this.store.dispatch('updateInitialVirtualViewportWidth', durationInPixels);
       this.store.dispatch('updateCurrentVirtualViewportWidth', durationInPixels);
       this.store.dispatch('updateZoomLevel', zoom);
     },
     startPlayback() {
       if (this.isPlaying) return;
-      
+
       this.isPlaying = true;
       this.currentTime = 0;
       this.currentInstructionIndex = 0;
@@ -204,7 +204,7 @@ export default defineComponent({
     updatePlayback(ticker: any) {
       if (!this.isPlaying) return;
       this.currentTime += ticker.deltaTime * config.millisecondsPerTick;
-      
+
       const instruction = this.instructions[this.currentInstructionIndex];
 
       if (instruction && instruction.wait && this.currentTime >= instruction.wait.miliseconds) {
@@ -250,7 +250,9 @@ export default defineComponent({
 <template>
   <div class="main-container">
 
-    <div class="timeline-container">
+    <div class="timeline-container" id="timelineID">
+
+      <!--Playback Controls-->
       <div class="playbackContainer">
         <v-btn v-show="!isPlaying" @click="startPlayback">Play</v-btn>
         <v-btn v-show="isPlaying" @click="stopPlayback">Stop</v-btn>
@@ -262,6 +264,8 @@ export default defineComponent({
         <v-btn @click="changeTrackCount(-1)">Remove Track</v-btn>
         <v-btn @click="dialog = true">Open Visualization</v-btn>
       </div>
+
+      <!--Playback Visualization-->
       <Slider></Slider>
       <ScrollBar></ScrollBar>
       <Grid :track-count="trackCount"></Grid>
@@ -289,8 +293,9 @@ export default defineComponent({
       </v-dialog>
     </div>
 
+    <!--Simulation View-->
     <div class="simulation-container">
-      <SimulationView></SimulationView>
+      <SimulationView :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></SimulationView>
     </div>
   </div>
 
@@ -323,8 +328,16 @@ export default defineComponent({
 
    .main-container {
      display: flex;
+     width: 100%;
+   }
+
+   .timeline-container {
+     width: 50%;
+     box-sizing: border-box;
    }
 
    .simulation-container {
+      width: 50%;
+      box-sizing: border-box;
    }
 </style>

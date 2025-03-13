@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import * as THREE from "three";
-import { onMounted } from "vue";
+import { onMounted, defineProps, watch } from "vue";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
@@ -18,6 +18,16 @@ TODO abgreifen der daten aus ->  <p style="user-select: none">{{currentInstructi
 TODO ist in PlaybackVisualization
 
  */
+
+const props = defineProps<{
+  currentInstruction: any;
+  currentTime: number;
+  totalDuration: number;
+}>();
+
+watch(() => props.currentInstruction, (newVal) => {
+  console.log('Updated currentInstruction:', newVal);
+});
 
 // *************** Global Variables ***************
 let actorModel;
@@ -115,7 +125,7 @@ onMounted(() => {
   // *************** Label for actor ***************
 
   const labelRenderer = new CSS2DRenderer();
-  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.setSize(window.innerWidth *0.5, window.innerHeight *0.5);
   labelRenderer.domElement.style.position = 'absolute';
   labelRenderer.domElement.style.top = '0';
   labelRenderer.domElement.style.pointerEvents = 'none';
@@ -135,14 +145,14 @@ onMounted(() => {
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth *0.5, window.innerHeight *0.5);
     renderer.setAnimationLoop(render);
     container.appendChild(renderer.domElement);
     labelRenderer.domElement.style.zIndex = '1';
     container.appendChild(labelRenderer.domElement);
 
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+    camera = new THREE.PerspectiveCamera(45, (window.innerWidth * 0.5) / (window.innerHeight * 0.5), 1, 1000);
     camera.position.z = 120;
     scene.add(new THREE.AmbientLight(0x666666));
 
@@ -199,9 +209,11 @@ onMounted(() => {
   // *************** Functions ***************
 
   function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    camera.aspect = containerWidth / containerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(containerWidth, containerHeight);
   }
 
   function onPointerMove(event: MouseEvent) {
@@ -211,8 +223,9 @@ onMounted(() => {
   function checkIntersection(x: number, y: number) {
     if (!meshModel) return;
 
-    mouse.x = (x / window.innerWidth) * 2 - 1;
-    mouse.y = -(y / window.innerHeight) * 2 + 1;
+    const rect = container.getBoundingClientRect();
+    mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
     raycaster.intersectObject(meshModel, false, intersects);
@@ -664,8 +677,7 @@ onMounted(() => {
 </script>
 
 <template>
-
-  <div id="three-container"></div>
+  <div id="three-container" style="width: 100%; height: 100%;"> </div>
 </template>
 
 <style scoped>
