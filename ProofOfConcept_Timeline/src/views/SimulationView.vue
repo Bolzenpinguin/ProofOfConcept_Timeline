@@ -6,18 +6,18 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
-
 // *************** TODOs ***************
 /*
 TODO Websockets
 TODO LAden besser hinbekommen
 TODO Drag and Drop
 TODO Syncen hinbekommen
-TODO in vue components auslagern
-TODO abgreifen der daten aus ->  <p style="user-select: none">{{currentInstruction ? currentInstruction : "No Instruction"}}</p>
-TODO ist in PlaybackVisualization
 
  */
+
+// *************** Watcher ***************
+
+const clock = new THREE.Clock();
 
 const props = defineProps<{
   currentInstruction: any;
@@ -25,8 +25,15 @@ const props = defineProps<{
   totalDuration: number;
 }>();
 
-watch(() => props.currentInstruction, (newVal) => {
-  console.log('Updated currentInstruction:', newVal);
+
+watch( () => props.currentInstruction, (newInstruction) => {
+  const watchedChannel = newInstruction.setParameter.channels[0];
+  const watchedIntensity = newInstruction.setParameter.intensity;
+
+  const actor = channelActors[watchedChannel];
+
+
+  // TODO -> noch in den render packen oder variablen anpassen zb wenn wert sich ändert wird das an den renderer geschcikt oder sp
 });
 
 // *************** Global Variables ***************
@@ -97,9 +104,6 @@ const guiSettings = {
 };
 
 
-
-
-
 // *************** Main Code ***************
 onMounted(() => {
 
@@ -125,7 +129,7 @@ onMounted(() => {
   // *************** Label for actor ***************
 
   const labelRenderer = new CSS2DRenderer();
-  labelRenderer.setSize(window.innerWidth , window.innerHeight);
+  labelRenderer.setSize(window.innerWidth * 0.5, window.innerHeight * 0.5);
   labelRenderer.domElement.style.position = 'absolute';
   labelRenderer.domElement.style.top = '0';
   labelRenderer.domElement.style.pointerEvents = 'none';
@@ -147,6 +151,7 @@ onMounted(() => {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth * 0.5, window.innerHeight *0.5 );
     renderer.setAnimationLoop(render);
+    // label stuff
     container.appendChild(renderer.domElement);
     labelRenderer.domElement.style.zIndex = '1';
     container.appendChild(labelRenderer.domElement);
@@ -668,6 +673,7 @@ onMounted(() => {
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
   }
+
 });
 
 </script>
@@ -686,8 +692,5 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-#three-container {
-  position: relative;
-  right: 100em;
-}
+
 </style>

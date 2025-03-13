@@ -282,10 +282,10 @@ export default defineComponent({
               <PlaybackVisualization :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></PlaybackVisualization>
               <!--Simulation View-->
               <div class="simulation-container">
-                <div id="simuGUI"></div>
                 <div class="view-container">
                   <SimulationView :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></SimulationView>
                 </div>
+                <div id="simuGUI"></div>
               </div>
 
             </v-card-text>
@@ -330,19 +330,14 @@ export default defineComponent({
 
    #simuGUI {
      display: flex;
-     justify-content: right;
-     z-index: 999;
-     position: relative;
-     left: 110rem;
-
    }
+
    .simulation-container {
      display: flex;
-     align-items: flex-start;
      gap: 12px;
    }
 
    .view-container {
-     margin-left: auto;
+     margin: auto;
    }
 </style>
