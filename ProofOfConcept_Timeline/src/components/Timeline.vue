@@ -233,6 +233,30 @@ export default defineComponent({
       store.dispatch('setTrackCount', this.trackCount - 1);
       store.dispatch('calculateScrollableHeight');
       // TODO for future, calculate new trackLength
+    },
+
+    toggleView() {
+      console.log("toggle view")
+      const sv = document.getElementById('simulation-view')
+      const tl = document.getElementById('timeline')
+
+      if (sv == null || tl == null) return
+
+      console.log(tl)
+      console.log(tl.style.display)
+      console.log(sv)
+      console.log(sv.style.display)
+
+      if (tl.style.display == "block") {
+        console.log("changing to sv")
+        sv.style.display = "block"
+        tl.style.display = "none"
+      } else {
+        console.log("changing to tl")
+        sv.style.display = "none"
+        tl.style.display = "block"
+      }
+
     }
   },
   components: {
@@ -258,11 +282,12 @@ export default defineComponent({
         <v-btn v-show="isPlaying" @click="stopPlayback">Stop</v-btn>
         <v-btn :disabled="selectedJson == loadedJson" @click="loadFile">Load File</v-btn>
         <select id="fileSelect" v-model="selectedJson">
-          <option v-for="(file, index) in jsonData" :key="index" :value="file">{{file.metadata.name}}</option>
+          <option v-for="(file, index) in jsonData" :key="index" :value="file">{{ file.metadata.name }}</option>
         </select>
         <v-btn @click="changeTrackCount(1)">Add Track</v-btn>
         <v-btn @click="changeTrackCount(-1)">Remove Track</v-btn>
-        <v-btn @click="dialog = true">Open Visualization</v-btn>
+        <v-btn @click="toggleView">Open Visualization</v-btn>
+        <!-- <v-btn @click="dialog = true">Open Visualization</v-btn> -->
       </div>
 
       <!--Playback Visualization-->
@@ -270,23 +295,18 @@ export default defineComponent({
       <ScrollBar></ScrollBar>
       <Grid :track-count="trackCount"></Grid>
       <div v-for="trackId in Array.from({ length: trackCount }, (_, i) => i)" :key="trackId">
-        <Track :track-id="trackId" :blocks="blocks[trackId] || []"/>
+        <Track :track-id="trackId" :blocks="blocks[trackId] || []" />
       </div>
-      <PlaybackIndicator :current-time="currentTime" :total-duration="totalDuration" :track-count="trackCount"></PlaybackIndicator>
+      <PlaybackIndicator :current-time="currentTime" :total-duration="totalDuration" :track-count="trackCount">
+      </PlaybackIndicator>
 
-      <!--Visualization Dialog-->
-      <v-dialog max-width="auto" height="70%" v-model="dialog">
-        <template v-slot:default="{ isActive }">
-          <v-card title="Visualization">
-            <v-card-text>
-              <PlaybackVisualization :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></PlaybackVisualization>
-              <!--Simulation View-->
-              <div class="simulation-container">
-                <div class="view-container">
-                  <SimulationView :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></SimulationView>
-                </div>
-                <div id="simuGUI"></div>
-              </div>
+
+
+      <div id="simulation-view" display="block">
+
+        <SimulationView :current-instruction="currentInstruction" :current-time="currentTime"
+          :total-duration="totalDuration"></SimulationView>
+      </div>
 
             </v-card-text>
             <v-card-actions>
@@ -337,7 +357,10 @@ export default defineComponent({
      gap: 12px;
    }
 
-   .view-container {
-     margin: auto;
-   }
+#simulation-view {
+  margin: auto;
+  position: absolute;
+  top: 100;
+  left: 66%;
+}
 </style>
