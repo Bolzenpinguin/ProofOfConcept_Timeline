@@ -238,30 +238,6 @@ export default defineComponent({
       store.dispatch('calculateScrollableHeight');
       // TODO for future, calculate new trackLength
     },
-
-    toggleView() {
-      console.log("toggle view")
-      const sv = document.getElementById('simulation-view')
-      const tl = document.getElementById('timeline')
-
-      if (sv == null || tl == null) return
-
-      console.log(tl)
-      console.log(tl.style.display)
-      console.log(sv)
-      console.log(sv.style.display)
-
-      if (tl.style.display == "block") {
-        console.log("changing to sv")
-        sv.style.display = "block"
-        tl.style.display = "none"
-      } else {
-        console.log("changing to tl")
-        sv.style.display = "none"
-        tl.style.display = "block"
-      }
-
-    }
   },
   components: {
     SimulationView,
@@ -290,8 +266,6 @@ export default defineComponent({
         </select>
         <v-btn @click="changeTrackCount(1)">Add Track</v-btn>
         <v-btn @click="changeTrackCount(-1)">Remove Track</v-btn>
-        <v-btn @click="toggleView">Open Visualization</v-btn>
-        <!-- <v-btn @click="dialog = true">Open Visualization</v-btn> -->
       </div>
 
       <!--Playback Visualization-->
@@ -303,18 +277,12 @@ export default defineComponent({
       </div>
       <PlaybackIndicator :current-time="currentTime" :total-duration="totalDuration" :track-count="trackCount">
       </PlaybackIndicator>
-
-
-
       <div id="simulation-view" display="block">
-
         <SimulationView :current-instruction="currentInstruction" :current-time="currentTime"
           :total-duration="totalDuration"></SimulationView>
       </div>
-
     </div>
   </div>
-
 </template>
 
 <style scoped>
@@ -339,16 +307,6 @@ export default defineComponent({
   border-style: none;
   cursor: pointer;
   text-transform: uppercase;
-}
-
-#simuGUI {
-  display: flex;
-  margin-top: 200px ;
-}
-
-.simulation-container {
-  display: flex;
-  gap: 12px;
 }
 
 #simulation-view {
