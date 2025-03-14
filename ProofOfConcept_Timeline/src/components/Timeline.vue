@@ -1,10 +1,10 @@
 <script lang="ts">
-import {defineComponent, ref} from 'vue'
+import { defineComponent, ref } from 'vue'
 import * as Pixi from "pixi.js";
-import {useStore} from "vuex";
-import pixiApp, {dynamicContainer} from "@/pixi/pixiApp";
-import {InstructionParser, type TactonRectangle, Instruction} from "@/parser/instructionParser";
-import Track, {type BlockDTO} from "@/components/Track.vue";
+import { useStore } from "vuex";
+import pixiApp, { dynamicContainer } from "@/pixi/pixiApp";
+import { InstructionParser, type TactonRectangle, Instruction } from "@/parser/instructionParser";
+import Track, { type BlockDTO } from "@/components/Track.vue";
 import Grid from "@/components/Grid.vue";
 import PlaybackIndicator from "@/components/PlaybackIndicator.vue";
 
@@ -12,7 +12,7 @@ import config from "@/config";
 import JsonData from '../json/2024-06-20_Team1_session1.json';
 import PlaybackVisualization from "@/components/PlaybackVisualization.vue";
 import Slider from "@/components/Slider.vue";
-import store, {type BlockSelection} from "@/store";
+import store, { type BlockSelection } from "@/store";
 import ScrollBar from "@/components/ScrollBar.vue";
 import SimulationView from "@/views/SimulationView.vue";
 
@@ -103,7 +103,7 @@ export default defineComponent({
     function removeSelectionBox(): void {
       const box = document.getElementById('selection-box');
       if (box) box.remove();
-    }    
+    }
     function selectRectanglesWithin(): void {
       selectedBlocks.length = 0;
       let { x, y, width, height } = getBoundingBox();
@@ -112,16 +112,16 @@ export default defineComponent({
       y -= pixiApp.canvas.getBoundingClientRect().top;
       // adjust for scrolling
       y -= dynamicContainer.y;
-      
+
       // calculate tracks to check --> only check tracks that could contain selection
       const startTrack = Math.floor(y / config.trackHeight);
-      const endTrack = Math.floor((y+height)/config.trackHeight);
+      const endTrack = Math.floor((y + height) / config.trackHeight);
       for (let trackId = startTrack; trackId <= endTrack; trackId++) {
         const blocks = store.state.blocks[trackId];
         if (!blocks) continue;
         blocks.forEach((block: BlockDTO, index: number) => {
           if ((block.rect.x + block.rect.width) >= x && block.rect.x <= (x + width) && block.rect.y <= (y + height) && block.rect.y + block.rect.height >= y) {
-            const selection: BlockSelection = {trackId: trackId, index: index, uid: block.rect.uid};
+            const selection: BlockSelection = { trackId: trackId, index: index, uid: block.rect.uid };
             selectedBlocks.push(selection);
           }
         });
@@ -140,6 +140,10 @@ export default defineComponent({
     const visibleHeight = window.innerHeight - pixiApp.canvas.getBoundingClientRect().top - config.sliderHeight - config.componentPadding;
     store.dispatch('setVisibleHeight', visibleHeight);
     store.dispatch('calculateScrollableHeight');
+    // let x: HTMLElement | null = document.getElementById('timeline')
+    // if(x != null){
+    //   x.style.display = "hidden"
+    // }
   },
   methods: {
     loadJson() {
@@ -171,12 +175,12 @@ export default defineComponent({
     calculateInitialZoom() {
       const viewportWidth = pixiApp.canvas.width - config.leftPadding;
       const padding = config.pixelsPerSecond;
-      const durationInSeconds = this.totalDuration/1000;
+      const durationInSeconds = this.totalDuration / 1000;
       const durationInPixels = (durationInSeconds * config.pixelsPerSecond) + padding;
       const zoom = viewportWidth / (durationInPixels);
 
       console.debug("viewportWidth", viewportWidth);
-      console.debug("totalDuration:", durationInSeconds.toFixed(2),"s");
+      console.debug("totalDuration:", durationInSeconds.toFixed(2), "s");
       console.debug("durationInPixels", durationInPixels);
       console.debug("zoom: ", zoom);
 
@@ -224,8 +228,8 @@ export default defineComponent({
     loadFile() {
       if (this.loadedJson == this.selectedJson) return;
       this.loadedJson = this.selectedJson;
-      
-      console.clear();     
+
+      console.clear();
       this.loadJson();
     },
     changeTrackCount(changeBy: number) {
@@ -233,6 +237,30 @@ export default defineComponent({
       store.dispatch('setTrackCount', this.trackCount - 1);
       store.dispatch('calculateScrollableHeight');
       // TODO for future, calculate new trackLength
+    },
+
+    toggleView() {
+      console.log("toggle view")
+      const sv = document.getElementById('simulation-view')
+      const tl = document.getElementById('timeline')
+
+      if (sv == null || tl == null) return
+
+      console.log(tl)
+      console.log(tl.style.display)
+      console.log(sv)
+      console.log(sv.style.display)
+
+      if (tl.style.display == "block") {
+        console.log("changing to sv")
+        sv.style.display = "block"
+        tl.style.display = "none"
+      } else {
+        console.log("changing to tl")
+        sv.style.display = "none"
+        tl.style.display = "block"
+      }
+
     }
   },
   components: {
@@ -258,11 +286,12 @@ export default defineComponent({
         <v-btn v-show="isPlaying" @click="stopPlayback">Stop</v-btn>
         <v-btn :disabled="selectedJson == loadedJson" @click="loadFile">Load File</v-btn>
         <select id="fileSelect" v-model="selectedJson">
-          <option v-for="(file, index) in jsonData" :key="index" :value="file">{{file.metadata.name}}</option>
+          <option v-for="(file, index) in jsonData" :key="index" :value="file">{{ file.metadata.name }}</option>
         </select>
         <v-btn @click="changeTrackCount(1)">Add Track</v-btn>
         <v-btn @click="changeTrackCount(-1)">Remove Track</v-btn>
-        <v-btn @click="dialog = true">Open Visualization</v-btn>
+        <v-btn @click="toggleView">Open Visualization</v-btn>
+        <!-- <v-btn @click="dialog = true">Open Visualization</v-btn> -->
       </div>
 
       <!--Playback Visualization-->
@@ -270,74 +299,62 @@ export default defineComponent({
       <ScrollBar></ScrollBar>
       <Grid :track-count="trackCount"></Grid>
       <div v-for="trackId in Array.from({ length: trackCount }, (_, i) => i)" :key="trackId">
-        <Track :track-id="trackId" :blocks="blocks[trackId] || []"/>
+        <Track :track-id="trackId" :blocks="blocks[trackId] || []" />
       </div>
-      <PlaybackIndicator :current-time="currentTime" :total-duration="totalDuration" :track-count="trackCount"></PlaybackIndicator>
+      <PlaybackIndicator :current-time="currentTime" :total-duration="totalDuration" :track-count="trackCount">
+      </PlaybackIndicator>
 
-      <!--Visualization Dialog-->
-      <v-dialog max-width="auto" height="70%" v-model="dialog">
-        <template v-slot:default="{ isActive }">
-          <v-card title="Visualization">
-            <v-card-text>
-              <PlaybackVisualization :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></PlaybackVisualization>
-              <!--Simulation View-->
-              <div class="simulation-container">
-                <div class="view-container">
-                  <SimulationView :current-instruction="currentInstruction" :current-time="currentTime" :total-duration="totalDuration"></SimulationView>
-                </div>
-                <div id="simuGUI"></div>
-              </div>
 
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn
-                  text="Close"
-                  @click="isActive.value = false"
-              ></v-btn>
-            </v-card-actions>
-          </v-card>
-        </template>
-      </v-dialog>
+
+      <div id="simulation-view" display="block">
+
+        <SimulationView :current-instruction="currentInstruction" :current-time="currentTime"
+          :total-duration="totalDuration"></SimulationView>
+      </div>
+
     </div>
   </div>
 
 </template>
 
 <style scoped>
-   .playbackContainer {
-     padding: 12px;
-     display: flex;
-     justify-content: center;
-     align-content: center;
-     gap: 12px;
-     user-select: none;
-   }
-    
-   .playbackContainer button {
-     min-width: 128px;
-     height: 32px;
-     font-weight: 600;
-     font-size: 16px;
-     letter-spacing: 0.1rem;
-     color: white;
-     background-color: #EC660C;
-     border-radius: 6px;
-     border-style: none;
-     cursor: pointer;
-     text-transform: uppercase;
-   }
+.playbackContainer {
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  gap: 12px;
+  user-select: none;
+}
 
-   #simuGUI {
-     display: flex;
-   }
+.playbackContainer button {
+  min-width: 128px;
+  height: 32px;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.1rem;
+  color: white;
+  background-color: #EC660C;
+  border-radius: 6px;
+  border-style: none;
+  cursor: pointer;
+  text-transform: uppercase;
+}
 
-   .simulation-container {
-     display: flex;
-     gap: 12px;
-   }
+#simuGUI {
+  display: flex;
+  margin-top: 200px ;
+}
 
-   .view-container {
-     margin: auto;
-   }
+.simulation-container {
+  display: flex;
+  gap: 12px;
+}
+
+#simulation-view {
+  margin: auto;
+  position: absolute;
+  top: 100;
+  left: 66%;
+}
 </style>
