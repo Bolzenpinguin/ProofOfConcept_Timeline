@@ -9,7 +9,6 @@ import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRe
 // *************** TODOs ***************
 /*
 TODO Websockets
-TODO LAden besser hinbekommen
 TODO Drag and Drop
 TODO Syncen hinbekommen
 
@@ -29,17 +28,43 @@ const props = defineProps<{
 watch( () => props.currentInstruction, (newInstruction) => {
   const watchedChannel = newInstruction.setParameter.channels[0];
   const watchedIntensity = newInstruction.setParameter.intensity;
+  const actor = channels[watchedChannel];
 
-  const actor = channelActors[watchedChannel];
-
-
-  // TODO -> noch in den render packen oder variablen anpassen zb wenn wert sich ändert wird das an den renderer geschcikt oder sp
+  animateActor(actor, watchedIntensity);
 });
 
+let idOfFrame: number;
+
+function animateActor(actor: string, intensity: number) {
+  if (!actor) return;
+  if (!channelActors[actor]) return;
+
+  const factorOfSpeed = 20; // 20 is factor for speed for better visualization
+  const actorObject = channelActors[actor];
+
+  function animate() {
+
+
+    if (intensity > 0) {
+      let time = clock.getElapsedTime();
+      const scaleSinus = 1 + Math.sin((intensity * factorOfSpeed) * time) * 0.5;
+      actorObject.scale.set(scaleSinus, scaleSinus, scaleSinus);
+      idOfFrame = requestAnimationFrame(animate);
+    } else {
+      actorObject.scale.set(1, 1, 1);
+      cancelAnimationFrame(idOfFrame);
+      if (actorObject.scale !== 1) {
+        actorObject.scale.set(1, 1, 1);
+      }
+    }
+  }
+  animate();
+}
+
 // *************** Global Variables ***************
-let actorModel;
-let actorModelName: string = "";
-let currentModel = null;
+let actorModel: object;
+let actorModelName: string;
+let currentModel: object;
 const pathDefaultJSON: string = '/src/json/channelActors_.json';
 let colorController;
 
@@ -53,34 +78,46 @@ const channelActors = {
   "Channel 3": null,
 };
 
-const channelPositions = {
+// First part is for typescript to know the structure of the object, second part is the object itself
+const channelPositions: Record<string, {
+  x: number | null;
+  y: number | null;
+  z: number | null;
+  actorModel: string | null;
+  actorColor: string | null;
+  normales: null,
+}> = {
   "Channel 0": {
     x: null,
     y: null,
     z: null,
     actorModel: null,
-    actorColor: null
+    actorColor: null,
+    normales: null,
   },
   "Channel 1": {
     x: null,
     y: null,
     z: null,
     actorModel: null,
-    actorColor: null
+    actorColor: null,
+    normales: null,
   },
   "Channel 2": {
     x: null,
     y: null,
     z: null,
     actorModel: null,
-    actorColor: null
+    actorColor: null,
+    normales: null,
   },
   "Channel 3": {
     x: null,
     y: null,
     z: null,
     actorModel: null,
-    actorColor: null
+    actorColor: null,
+    normales: null,
   },
 };
 
@@ -100,7 +137,7 @@ const modelsPath = {
 const guiSettings = {
   selectedModel: models[0],
   selectedChannel: channels[0],
-  selectedColor: "#ffffff",
+  selectedColor: "#ff0000",
 };
 
 
@@ -384,7 +421,8 @@ onMounted(() => {
         y: null,
         z: null,
         actorModel: null,
-        actorColor: null
+        actorColor: null,
+        normales: null,
       }
       // Update local Storage
       localStorage.setItem("channelActors", JSON.stringify(channelPositions));
@@ -474,7 +512,7 @@ onMounted(() => {
           if (channelData && channelData.actorColor) {
             guiSettings.selectedColor = channelData.actorColor;
           } else {
-            guiSettings.selectedColor = "#ffffff";
+            guiSettings.selectedColor = "#ff0000";
           }
           colorController.updateDisplay();
           updateRemoveActorButton();

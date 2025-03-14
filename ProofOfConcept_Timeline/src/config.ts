@@ -38,6 +38,6 @@ const config = {
         boundingBoxColor: 'rgba(236,102,12, 0.1)'
     },
     // playback
-    millisecondsPerTick: 3 //quasi bpm
+    millisecondsPerTick: 15 //quasi bpm = 30 standard
 }
 export default config;
