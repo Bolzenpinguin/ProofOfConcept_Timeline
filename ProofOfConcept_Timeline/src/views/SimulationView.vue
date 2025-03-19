@@ -69,7 +69,7 @@ const pathDefaultJSON: string = '/src/json/channelActors_.json';
 let colorController;
 
 const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
-const models = ["UpperBody", "Body"];
+const models = ["Neutral_A_Pose", "Neutral_T_Pose", "Female_A_Pose", "Female_T_Pose", "Male_A_Pose", "Male_T_Pose", "Male_Old_A_Pose", "Male_Old_T_Pose"];
 
 const channelActors = {
   "Channel 0": null,
@@ -129,9 +129,14 @@ const actorModels = {
 };
 
 const modelsPath = {
-  UpperBody: "/models/obj/head.obj",
-  UpperBodyGLB: "/models/glb/LeePerrySmith.glb",
-  Body: "/models/gltf/human/male-mannequin.obj",
+  Neutral_A_Pose: "/models/obj/mh-neutral-a_pose.obj",
+  Neutral_T_Pose: "/models/obj/mh-neutral-t_pose.obj",
+  Female_A_Pose: "/models/obj/mh-female-a_pose.obj",
+  Female_T_Pose: "/models/obj/mh-female-t_pose.obj",
+  Male_A_Pose: "/models/obj/mh-male-a_pose.obj",
+  Male_T_Pose: "/models/obj/mh-male-t_pose.obj",
+  Male_Old_A_Pose: "/models/obj/mh-male_old-a_pose.obj",
+  Male_Old_T_Pose: "/models/obj/mh-male_old-t_pose.obj",
 }
 
 const guiSettings = {
@@ -200,20 +205,21 @@ onMounted(() => {
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, (window.innerWidth ) / (window.innerHeight), 1, 1000);
-    camera.position.z = 120;
-    scene.add(new THREE.AmbientLight(0x666666));
+    camera.position.z = 300;
 
-    const dirLight1 = new THREE.DirectionalLight(0xffddcc, 3);
+    scene.add(new THREE.AmbientLight(0xffffff));
+
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 3);
     dirLight1.position.set(1, 0.75, 0.5);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0xccccff, 3);
+    const dirLight2 = new THREE.DirectionalLight(0xffffff, 3);
     dirLight2.position.set(-1, 0.75, -0.5);
     scene.add(dirLight2);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.minDistance = 2;
-    controls.maxDistance = Infinity;
+    controls.maxDistance = 400;
 
     let moved = false;
     controls.addEventListener("change", () => (moved = true));
@@ -245,7 +251,7 @@ onMounted(() => {
       }
     });
 
-    loadModel(modelsPath.UpperBody); // default Model
+    loadModel(modelsPath.Neutral_A_Pose); // default Model
     loadActor(actorModels.Cone, "Cone"); // default Actor Model
     createSettingsPanel(actorModels);
 
@@ -327,7 +333,7 @@ onMounted(() => {
         }
         currentModel = obj;
         scene.add(obj);
-        meshModel.scale.multiplyScalar(8);
+        meshModel.scale.multiplyScalar(10);
       });
     } else {
       alert("Wrong format, only .obj supported");
@@ -347,7 +353,7 @@ onMounted(() => {
           actorModel = obj;
           actorModelName = modelName;
 
-          // load models from JSON 
+          // load models from JSON
           if (onLoad) {
             onLoad(obj);
           }
