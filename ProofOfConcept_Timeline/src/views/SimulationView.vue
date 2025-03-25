@@ -464,6 +464,7 @@ onMounted(() => {
       localStorage.setItem("channelActors", JSON.stringify(channelPositions));
       // send it to server
       socket.emit("send-actor-remove", JSON.stringify( {channel: channel}));
+      updateRemoveActorButton();
     }
   }
 
