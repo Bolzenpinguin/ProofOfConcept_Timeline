@@ -5,7 +5,6 @@ import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { io } from "socket.io-client"
 
 // *************** TODOs ***************
 /*
@@ -15,8 +14,6 @@ TODO Syncen hinbekommen
 
  */
 
-
-let testCount = 0;
 // *************** Watcher ***************
 
 const clock = new THREE.Clock();
@@ -46,6 +43,8 @@ function animateActor(actor: string, intensity: number) {
   const actorObject = channelActors[actor];
 
   function animate() {
+
+
     if (intensity > 0) {
       let time = clock.getElapsedTime();
       const scaleSinus = 1 + Math.sin((intensity * factorOfSpeed) * time) * 0.5;
@@ -73,10 +72,10 @@ const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
 const models = ["Neutral_A_Pose", "Neutral_T_Pose", "Female_A_Pose", "Female_T_Pose", "Male_A_Pose", "Male_T_Pose", "Male_Old_A_Pose", "Male_Old_T_Pose"];
 
 const channelActors = {
-  "0": null,
-  "1": null,
-  "2": null,
-  "3": null,
+  "Channel 0": null,
+  "Channel 1": null,
+  "Channel 2": null,
+  "Channel 3": null,
 };
 
 // First part is for typescript to know the structure of the object, second part is the object itself
@@ -86,7 +85,7 @@ const channelPositions: Record<string, {
   z: number | null;
   actorModel: string | null;
   actorColor: string | null;
-  normales:  null,
+  normales: null,
 }> = {
   "Channel 0": {
     x: null,
@@ -146,6 +145,7 @@ const guiSettings = {
   selectedColor: "#ff0000",
 };
 
+
 // *************** Main Code ***************
 onMounted(() => {
 
@@ -176,6 +176,7 @@ onMounted(() => {
   labelRenderer.domElement.style.top = '0';
   labelRenderer.domElement.style.pointerEvents = 'none';
 
+
   const mouse = new THREE.Vector2();
   const intersects: THREE.Intersection[] = [];
 
@@ -186,19 +187,21 @@ onMounted(() => {
 
   init();
 
-  // *************** init ***************
-
   function init() {
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     // renderer.setSize(window.innerWidth * 0.5, window.innerHeight *0.5 );
     renderer.setSize(window.innerWidth * (1/3), window.innerHeight );
+    console.log("SV")
+    console.log(window.innerWidth * 0.5, window.innerHeight *0.5)
     renderer.setAnimationLoop(render);
     // label stuff
     container.appendChild(renderer.domElement);
     labelRenderer.domElement.style.zIndex = '1';
     container.appendChild(labelRenderer.domElement);
+
+
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, (window.innerWidth ) / (window.innerHeight), 1, 1000);
@@ -252,29 +255,10 @@ onMounted(() => {
     loadActor(actorModels.Cone, "Cone"); // default Actor Model
     createSettingsPanel(actorModels);
 
+
     loadActorPositions(pathDefaultJSON); // load and check in local storage JSON
     onWindowResize();
   }
-
-  // *************** Server Websocket ***************
-
-  const socket = io("http://localhost:3000");
-  socket.on("connect", () => {
-    console.log(`You connected with ID: ${socket.id}`)
-  })
-
-  // receive and place the actor from different clients
-  socket.on("receive-actor-placement", stringData => {
-    const data = JSON.parse(stringData);
-    placeActorFromJSON(data);
-    console.log(data);
-  })
-
-  socket.on("receive-actor-remove", stringData => {
-    const data = JSON.parse(stringData);
-    //console.log(data.channel);
-    removeActor(data.channel);
-  })
 
   // *************** Functions ***************
 
@@ -428,16 +412,10 @@ onMounted(() => {
       actorColor: actorColor
     }
     localStorage.setItem("channelActors", JSON.stringify(channelPositions));
-
-    // send it to server
-    socket.emit("send-actor-placement", JSON.stringify(channelPositions));
   }
 
   function removeActor(channel: string) {
     const actor = channelActors[channel];
-
-    if (!actor) return;
-
     // remove the label
     if (actor) {
       actor.traverse((child) => {
@@ -460,10 +438,8 @@ onMounted(() => {
       }
       // Update local Storage
       localStorage.setItem("channelActors", JSON.stringify(channelPositions));
-    }
 
-    // send it to server
-    socket.emit("send-actor-remove", JSON.stringify( {channel: channel}));
+    }
   }
 
   // *********************************************************************** AB HIER GUI ***********************************************************************
@@ -541,6 +517,9 @@ onMounted(() => {
         .name("Select Channel")
         .onChange((selectedChannel: string) => {
           const channelData = channelPositions[selectedChannel];
+          console.log(localStorage.getItem("channelActors"));
+
+          console.log(channelData);
           // Update the actor color from the loaded JSON if available
           if (channelData && channelData.actorColor) {
             guiSettings.selectedColor = channelData.actorColor;
@@ -574,8 +553,6 @@ onMounted(() => {
         .onChange((newColor) => {
           const channel = guiSettings.selectedChannel;
           channelPositions[channel].actorColor = newColor;
-
-          // TODO Stream Farbe
 
           if (channelActors[channel]) {
             channelActors[channel].traverse((child) => {
@@ -677,7 +654,7 @@ onMounted(() => {
   function placeActorFromJSON(data: any) {
     Object.keys(data).forEach((channel) => {
       const posData = data[channel];
-      if (!posData ) return; // skip if no data in JSON
+      if (!posData) return; // skip if no data in JSON
 
         // update channelPositions with JSON
         channelPositions[channel] = {
@@ -689,52 +666,55 @@ onMounted(() => {
           normals: posData.normals
         };
 
-        const modelPath = actorModels[posData.actorModel];
-        if (!modelPath) return;
+      const modelPath = actorModels[posData.actorModel];
+      if (!modelPath) {
+        console.warn(`No OBJ path for actor model: ${posData.actorModel}`);
+        return;
+      }
 
-        // load actor models
-        loadActor(modelPath, posData.actorModel, (loadedObject) => {
-          const actorClone = loadedObject.clone();
-          actorClone.position.set(posData.x, posData.y, posData.z);
+      // load actor models
+      loadActor(modelPath, posData.actorModel, (loadedObject) => {
+        const actorClone = loadedObject.clone();
+        actorClone.position.set(posData.x, posData.y, posData.z);
 
-          // rotate actors on normales -> get value from JSON
-          const quats = new THREE.Quaternion(
+        // rotate actors on normales -> get value from JSON
+        const quats = new THREE.Quaternion(
             posData.normals[0],
             posData.normals[1],
             posData.normals[2],
             posData.normals[3]
-          );
-          actorClone.quaternion.copy(quats);
+        );
+        actorClone.quaternion.copy(quats);
 
-          // scale actor
-          actorClone.scale.set(1, 1, 1);
+        // scale actor
+        actorClone.scale.set(1, 1, 1);
 
-          // color actors
-          const actorColor = posData.actorColor;
-          actorClone.traverse((child) => {
-            if (child.isMesh) {
-              child.material = new THREE.MeshStandardMaterial({ color: actorColor });
-            }
-          });
-
-          const labelDiv = document.createElement('div');
-          labelDiv.className = 'actor-label';
-          labelDiv.textContent = channel.split(" ")[1]; // Label shows channel number
-          const labelObject = new CSS2DObject(labelDiv);
-          labelObject.position.set(0, 7, 0); //offset
-          actorClone.add(labelObject);
-
-          // update color in gui
-          if (channel === guiSettings.selectedChannel) {
-            guiSettings.selectedColor = actorColor;
-            colorController.updateDisplay();
+        // color actors
+        const actorColor = posData.actorColor;
+        actorClone.traverse((child) => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({ color: actorColor });
           }
+        });
 
-          scene.add(actorClone);
-          channelActors[channel] = actorClone;
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'actor-label';
+        labelDiv.textContent = channel; // Label shows channel number
+        const labelObject = new CSS2DObject(labelDiv);
+        labelObject.position.set(0, 7, 0); //offset
+        actorClone.add(labelObject);
 
-          updateRemoveActorButton();
-          removeActorController.updateDisplay();
+        // update color in gui
+        if (channel === guiSettings.selectedChannel) {
+          guiSettings.selectedColor = actorColor;
+          colorController.updateDisplay();
+        }
+
+        scene.add(actorClone);
+        channelActors[channel] = actorClone;
+
+        updateRemoveActorButton();
+        removeActorController.updateDisplay();
       });
     });
   }
