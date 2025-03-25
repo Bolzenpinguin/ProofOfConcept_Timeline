@@ -5,6 +5,7 @@ import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { io } from "socket.io-client"
 
 // *************** TODOs ***************
 /*
@@ -260,6 +261,26 @@ onMounted(() => {
     onWindowResize();
   }
 
+  // *************** Server Websocket ***************
+
+  const socket = io("http://localhost:3000");
+  socket.on("connect", () => {
+    console.log(`You connected with ID: ${socket.id}`)
+  })
+
+  // receive and place the actor from different clients
+  socket.on("receive-actor-placement", stringData => {
+    const data = JSON.parse(stringData);
+    placeActorFromJSON(data);
+    console.log(data);
+  })
+
+  socket.on("receive-actor-remove", stringData => {
+    const data = JSON.parse(stringData);
+    //console.log(data.channel);
+    removeActor(data.channel);
+  })
+
   // *************** Functions ***************
 
   function onWindowResize() {
@@ -412,6 +433,9 @@ onMounted(() => {
       actorColor: actorColor
     }
     localStorage.setItem("channelActors", JSON.stringify(channelPositions));
+
+    // send it to server
+    socket.emit("send-actor-placement", JSON.stringify(channelPositions));
   }
 
   function removeActor(channel: string) {
@@ -438,7 +462,8 @@ onMounted(() => {
       }
       // Update local Storage
       localStorage.setItem("channelActors", JSON.stringify(channelPositions));
-
+      // send it to server
+      socket.emit("send-actor-remove", JSON.stringify( {channel: channel}));
     }
   }
 
@@ -667,10 +692,7 @@ onMounted(() => {
         };
 
       const modelPath = actorModels[posData.actorModel];
-      if (!modelPath) {
-        console.warn(`No OBJ path for actor model: ${posData.actorModel}`);
-        return;
-      }
+      if (!modelPath) return;
 
       // load actor models
       loadActor(modelPath, posData.actorModel, (loadedObject) => {
@@ -699,7 +721,7 @@ onMounted(() => {
 
         const labelDiv = document.createElement('div');
         labelDiv.className = 'actor-label';
-        labelDiv.textContent = channel; // Label shows channel number
+        labelDiv.textContent = channel.split(" ")[1]; // Label shows channel number
         const labelObject = new CSS2DObject(labelDiv);
         labelObject.position.set(0, 7, 0); //offset
         actorClone.add(labelObject);
