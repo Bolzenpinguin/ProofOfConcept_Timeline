@@ -7,14 +7,6 @@ import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { io } from "socket.io-client"
 
-// *************** TODOs ***************
-/*
-TODO Websockets
-TODO Drag and Drop
-TODO Syncen hinbekommen
-
- */
-
 // *************** Watcher ***************
 
 const clock = new THREE.Clock();
@@ -255,7 +247,6 @@ onMounted(() => {
     loadModel(modelsPath.Neutral_A_Pose); // default Model
     loadActor(actorModels.Cone, "Cone"); // default Actor Model
     createSettingsPanel(actorModels);
-
 
     loadActorPositions(pathDefaultJSON); // load and check in local storage JSON
     onWindowResize();
@@ -521,7 +512,7 @@ onMounted(() => {
             return;
           }
           if (selectedModel === currentModelSelected) {
-            return; // abort
+            return;
           }
           const actorsPlaced = Object.values(channelActors).some(actor => actor !== null);
           if (actorsPlaced) {
@@ -666,13 +657,12 @@ onMounted(() => {
     });
 
     try {
-      const response = await fetch(path); // check if json exits
+      const response = await fetch(path);
       const data = await response.json();
-      localStorage.setItem("channelActors", JSON.stringify(data)); // loads the data into local storage
+      localStorage.setItem("channelActors", JSON.stringify(data));
       placeActorFromJSON(data);
 
     } catch (e) {
-      // create empty storage if there is no json data
       localStorage.setItem("channelActors", JSON.stringify(channelPositions));
     }
   }
@@ -680,7 +670,7 @@ onMounted(() => {
   function placeActorFromJSON(data: any) {
     Object.keys(data).forEach((channel) => {
       const posData = data[channel];
-      if (!posData) return; // skip if no data in JSON
+      if (!posData) return;
 
         // update channelPositions with JSON
         channelPositions[channel] = {
@@ -756,6 +746,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+
 :deep(.actor-label) {
   color: black;
   font-size: 16px;
@@ -764,6 +755,5 @@ onMounted(() => {
   border: 1px solid white;
   border-radius: 4px;
 }
-
 
 </style>
