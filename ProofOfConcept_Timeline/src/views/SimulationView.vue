@@ -12,8 +12,7 @@ import { io } from "socket.io-client"
 /*
 Noch BTNs deaktivieren wenn in Viewing Mode ( bis auf Save)
 Drag and Drop
-
-
+Einfügen der Wahl, ob Aktoren von der Größe sich ändern oder ob sie die realen Werte benutzen -> BTN GUI wie bei View Modus
 
  */
 
@@ -194,17 +193,12 @@ onMounted(() => {
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
-    // renderer.setSize(window.innerWidth * 0.5, window.innerHeight *0.5 );
     renderer.setSize(window.innerWidth * (1/3), window.innerHeight );
-    console.log("SV")
-    console.log(window.innerWidth * 0.5, window.innerHeight *0.5)
     renderer.setAnimationLoop(render);
     // label stuff
     container.appendChild(renderer.domElement);
     labelRenderer.domElement.style.zIndex = '1';
     container.appendChild(labelRenderer.domElement);
-
-
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, (window.innerWidth ) / (window.innerHeight), 1, 1000);
@@ -510,7 +504,7 @@ onMounted(() => {
 
     // *** Mode Folder ***
     const modeFolder = panel.addFolder("Mode");
-    modeFolder.open();
+    modeFolder.close();
     modeFolder
         .add(guiState, "viewingMode")
         .name("Toggle Viewing Modus")
@@ -520,7 +514,7 @@ onMounted(() => {
         });
     // **** Model Folder ****
     const modelFolder = panel.addFolder("Models");
-    modelFolder.open();
+    modelFolder.close();
 
     let currentModelSelected = guiSettings.selectedModel;
     let ignoreModelChange = false; // to determine if the model is getting changed
@@ -548,7 +542,7 @@ onMounted(() => {
 
     // **** Channel Folder ****
     const channelsFolder = panel.addFolder("Channels");
-    channelsFolder.open();
+    channelsFolder.close();
 
     channelsFolder
         .add(guiSettings, "selectedChannel", channels)
@@ -557,7 +551,6 @@ onMounted(() => {
           const channelData = channelPositions[selectedChannel];
           console.log(localStorage.getItem("channelActors"));
 
-          console.log(channelData);
           // Update the actor color from the loaded JSON if available
           if (channelData && channelData.actorColor) {
             guiSettings.selectedColor = channelData.actorColor;
@@ -570,7 +563,7 @@ onMounted(() => {
 
     // **** Create Actor Folder ****
     const actorFolder = panel.addFolder("Actor Models");
-    actorFolder.open();
+    actorFolder.close();
 
     // **** Switch Actor Models ****
     const modelOptions = Object.keys(actorModels);
