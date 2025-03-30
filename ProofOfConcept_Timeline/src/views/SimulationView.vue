@@ -42,7 +42,7 @@ function animateActor(actor: string, intensity: number) {
   if (!actor) return;
   if (!channelActors[actor]) return;
 
-  const factorOfSpeed = 20; // 20 is factor for speed for better visualization
+  const strengthFactor = guiSettings.animationStrength;
   const actorObject = channelActors[actor];
 
   function animate() {
@@ -50,7 +50,7 @@ function animateActor(actor: string, intensity: number) {
 
     if (intensity > 0) {
       let time = clock.getElapsedTime();
-      const scaleSinus = 1 + Math.sin((intensity * factorOfSpeed) * time) * 0.5;
+      const scaleSinus = 1 + Math.abs(Math.sin((intensity * strengthFactor) * time)) * 0.5;
       actorObject.scale.set(scaleSinus, scaleSinus, scaleSinus);
       idOfFrame = requestAnimationFrame(animate);
     } else {
@@ -70,6 +70,11 @@ let actorModelName: string;
 let currentModel: object;
 const pathDefaultJSON: string = '/src/json/channelActors_.json';
 
+let colorController: any;
+let removeActorController: any;
+
+let guiState = { viewingMode: false };
+
 const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
 const models = ["Neutral_A_Pose", "Neutral_T_Pose", "Female_A_Pose", "Female_T_Pose", "Male_A_Pose", "Male_T_Pose", "Male_Old_A_Pose", "Male_Old_T_Pose"];
 
@@ -87,7 +92,7 @@ const channelPositions: Record<string, {
   z: number | null;
   actorModel: string | null;
   actorColor: string | null;
-  normales: null,
+  normals: null,
 }> = {
   "Channel 0": {
     x: null,
@@ -95,7 +100,7 @@ const channelPositions: Record<string, {
     z: null,
     actorModel: null,
     actorColor: null,
-    normales: null,
+    normals: null,
   },
   "Channel 1": {
     x: null,
@@ -103,7 +108,7 @@ const channelPositions: Record<string, {
     z: null,
     actorModel: null,
     actorColor: null,
-    normales: null,
+    normals: null,
   },
   "Channel 2": {
     x: null,
@@ -111,7 +116,7 @@ const channelPositions: Record<string, {
     z: null,
     actorModel: null,
     actorColor: null,
-    normales: null,
+    normals: null,
   },
   "Channel 3": {
     x: null,
@@ -119,7 +124,7 @@ const channelPositions: Record<string, {
     z: null,
     actorModel: null,
     actorColor: null,
-    normales: null,
+    normals: null,
   },
 };
 
@@ -143,6 +148,7 @@ const guiSettings = {
   selectedModel: models[0],
   selectedChannel: channels[0],
   selectedColor: "#ff0000",
+  animationStrength: 1,
 };
 
 
@@ -182,8 +188,6 @@ onMounted(() => {
 
   let mouseHelper: THREE.Mesh;
   const position = new THREE.Vector3();
-
-  let removeActorController: any;
 
   init();
 
@@ -497,7 +501,6 @@ onMounted(() => {
   }
 
   function createSettingsPanel(actorModels: Record<string, string>) {
-    const guiState = { viewingMode: false };
     const simuID = document.getElementById("simuGUI");
     const panel = new GUI({ container: simuID , width: 450 });
 
@@ -576,8 +579,16 @@ onMounted(() => {
           loadActor(selectedPath, modelName);
         });
 
+    // *** Animation Strength ***
+    const animationStrengthController = actorFolder
+        .add(guiSettings, "animationStrength", 1, 20, 1)
+        .name("Select Animation Strength Multipler")
+        .onChange((multipler: number) => {
+          console.log(multipler);
+        });
+
     // **** Change Color ****
-    const colorController = actorFolder
+    colorController = actorFolder
         .addColor(guiSettings, "selectedColor")
         .name("Select Actor Color")
         .onChange((newColor) => {
@@ -663,6 +674,7 @@ onMounted(() => {
       removeActorController.disable(isViewing);
       loadActorController.disable(isViewing);
       channelFolderController.disable(isViewing);
+      animationStrengthController.disable(isViewing);
 
       if (isViewing) {
         container.style.pointerEvents = "auto";
