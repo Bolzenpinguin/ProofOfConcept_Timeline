@@ -10,7 +10,6 @@ import { io } from "socket.io-client"
 
 // TODO
 /*
-Noch BTNs deaktivieren wenn in Viewing Mode ( bis auf Save)
 Drag and Drop
 Einfügen der Wahl, ob Aktoren von der Größe sich ändern oder ob sie die realen Werte benutzen -> BTN GUI wie bei View Modus
 
@@ -71,6 +70,7 @@ let actorModelName: string;
 let currentModel: object;
 const pathDefaultJSON: string = '/src/json/channelActors_.json';
 let colorController;
+let loadActorController;
 
 const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
 const models = ["Neutral_A_Pose", "Neutral_T_Pose", "Female_A_Pose", "Female_T_Pose", "Male_A_Pose", "Male_T_Pose", "Male_Old_A_Pose", "Male_Old_T_Pose"];
@@ -641,7 +641,7 @@ onMounted(() => {
       },
     };
 
-    actorFolder
+    loadActorController = actorFolder
         .add(loadJSON, "loadJson")
         .name("Load Actor Positions");
 
@@ -662,7 +662,7 @@ onMounted(() => {
       actorModelController.disable(isViewing);
       colorController.disable(isViewing);
       removeActorController.disable(isViewing);
-
+      loadActorController.disable(isViewing);
 
       if (isViewing) {
         container.style.pointerEvents = "auto";
