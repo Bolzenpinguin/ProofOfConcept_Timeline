@@ -69,8 +69,6 @@ let actorModel: object;
 let actorModelName: string;
 let currentModel: object;
 const pathDefaultJSON: string = '/src/json/channelActors_.json';
-let colorController;
-let loadActorController;
 
 const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
 const models = ["Neutral_A_Pose", "Neutral_T_Pose", "Female_A_Pose", "Female_T_Pose", "Male_A_Pose", "Male_T_Pose", "Male_Old_A_Pose", "Male_Old_T_Pose"];
@@ -470,7 +468,8 @@ onMounted(() => {
     if (!removeActorController) return;
     const channel = guiSettings.selectedChannel;
     const hasActor = !!channelActors[channel];
-    if (hasActor) {
+
+    if (hasActor && !guiState.viewingMode) {
       removeActorController.enable();
     } else {
       removeActorController.disable();
@@ -544,7 +543,7 @@ onMounted(() => {
     const channelsFolder = panel.addFolder("Channels");
     channelsFolder.close();
 
-    channelsFolder
+    const channelFolderController = channelsFolder
         .add(guiSettings, "selectedChannel", channels)
         .name("Select Channel")
         .onChange((selectedChannel: string) => {
@@ -578,7 +577,7 @@ onMounted(() => {
         });
 
     // **** Change Color ****
-    colorController = actorFolder
+    const colorController = actorFolder
         .addColor(guiSettings, "selectedColor")
         .name("Select Actor Color")
         .onChange((newColor) => {
@@ -641,7 +640,7 @@ onMounted(() => {
       },
     };
 
-    loadActorController = actorFolder
+    const loadActorController = actorFolder
         .add(loadJSON, "loadJson")
         .name("Load Actor Positions");
 
@@ -663,12 +662,13 @@ onMounted(() => {
       colorController.disable(isViewing);
       removeActorController.disable(isViewing);
       loadActorController.disable(isViewing);
+      channelFolderController.disable(isViewing);
 
       if (isViewing) {
         container.style.pointerEvents = "auto";
       }
-
     }
+
   }
 
   // *********************************************************************** BIS HIER GUI ***********************************************************************
