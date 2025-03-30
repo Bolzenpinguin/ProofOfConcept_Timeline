@@ -494,8 +494,21 @@ onMounted(() => {
   }
 
   function createSettingsPanel(actorModels: Record<string, string>) {
+    const guiState = { viewingMode: false };
     const simuID = document.getElementById("simuGUI");
     const panel = new GUI({ container: simuID , width: 450 });
+
+    // *** Mode Folder ***
+    const modeFolder = panel.addFolder("Mode");
+    modeFolder.open();
+    let viewingMode = false;
+    const modeControler = modeFolder
+        .add(guiState, "viewingMode")
+        .name("Toggle Viewing Modus")
+        .onChange((isViewing) => {
+          guiState.viewingMode = isViewing;
+          updateViewingMode(isViewing);
+        });
 
     // **** Model Folder ****
     const modelFolder = panel.addFolder("Models");
@@ -643,6 +656,20 @@ onMounted(() => {
         .add(saveJSON, "downloadJson")
         .name("Save Actor Positions");
 
+    function updateViewingMode(isViewing: boolean) {
+      modelController.disable(isViewing);
+      actorModelController.disable(isViewing);
+      colorController.disable(isViewing);
+      removeActorController.disable(isViewing);
+
+
+      if (isViewing) {
+        container.style.pointerEvents = "none";
+      } else {
+        container.style.pointerEvents = "auto";
+        updateRemoveActorButton();
+      }
+    }
   }
 
   // *********************************************************************** BIS HIER GUI ***********************************************************************
