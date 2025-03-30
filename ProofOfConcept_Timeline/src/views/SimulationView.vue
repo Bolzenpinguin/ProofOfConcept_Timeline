@@ -664,8 +664,6 @@ onMounted(() => {
 
 
       if (isViewing) {
-        container.style.pointerEvents = "none";
-      } else {
         container.style.pointerEvents = "auto";
         updateRemoveActorButton();
       }
