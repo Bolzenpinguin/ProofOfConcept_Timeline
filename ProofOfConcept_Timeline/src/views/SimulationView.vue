@@ -7,6 +7,18 @@ import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { io } from "socket.io-client"
 
+
+// TODO
+/*
+Noch BTNs deaktivieren wenn in Viewing Mode ( bis auf Save)
+Drag and Drop
+
+
+
+ */
+
+
+
 // *************** Watcher ***************
 
 const clock = new THREE.Clock();
@@ -115,10 +127,8 @@ const channelPositions: Record<string, {
 };
 
 const actorModels = {
-  Cone: "/actor/actor_cone.obj",
-  Cube: "/actor/actor_cube.obj",
-  Cylinder: "/actor/actor_cylinder.obj",
-  Sphere: "/actor/actor_sphere.obj",
+  ERM: "/actor/ERM_scaled.obj",
+  LRA: "/actor/LRA_scaled.obj",
 };
 
 const modelsPath = {
@@ -245,7 +255,7 @@ onMounted(() => {
     });
 
     loadModel(modelsPath.Neutral_A_Pose); // default Model
-    loadActor(actorModels.Cone, "Cone"); // default Actor Model
+    loadActor(actorModels.ERM, "ERM"); // default Actor Model
     createSettingsPanel(actorModels);
 
     loadActorPositions(pathDefaultJSON); // load and check in local storage JSON
@@ -501,15 +511,13 @@ onMounted(() => {
     // *** Mode Folder ***
     const modeFolder = panel.addFolder("Mode");
     modeFolder.open();
-    let viewingMode = false;
-    const modeControler = modeFolder
+    modeFolder
         .add(guiState, "viewingMode")
         .name("Toggle Viewing Modus")
         .onChange((isViewing) => {
           guiState.viewingMode = isViewing;
           updateViewingMode(isViewing);
         });
-
     // **** Model Folder ****
     const modelFolder = panel.addFolder("Models");
     modelFolder.open();
@@ -665,8 +673,8 @@ onMounted(() => {
 
       if (isViewing) {
         container.style.pointerEvents = "auto";
-        updateRemoveActorButton();
       }
+
     }
   }
 
