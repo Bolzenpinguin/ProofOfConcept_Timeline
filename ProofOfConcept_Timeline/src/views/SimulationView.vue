@@ -1,23 +1,13 @@
 <script setup lang="ts">
 import * as THREE from "three";
-import { onMounted, defineProps, watch } from "vue";
-import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import {onMounted, defineProps, watch} from "vue";
+import {OBJLoader} from "three/addons/loaders/OBJLoader.js";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
-import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { io } from "socket.io-client"
+import {CSS2DRenderer, CSS2DObject} from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import {io} from "socket.io-client"
 
-
-// TODO
-/*
-Drag and Drop
-Einfügen der Wahl, ob Aktoren von der Größe sich ändern oder ob sie die realen Werte benutzen -> BTN GUI wie bei View Modus
-
- */
-
-
-
-// *************** Watcher ***************
+// *************** Code ***************
 
 const clock = new THREE.Clock();
 
@@ -28,7 +18,7 @@ const props = defineProps<{
 }>();
 
 
-watch( () => props.currentInstruction, (newInstruction) => {
+watch(() => props.currentInstruction, (newInstruction) => {
   const watchedChannel = newInstruction.setParameter.channels[0];
   const watchedIntensity = newInstruction.setParameter.intensity;
   const actor = channels[watchedChannel];
@@ -61,10 +51,11 @@ function animateActor(actor: string, intensity: number) {
       }
     }
   }
+
   animate();
 }
 
-// *************** Global Variables ***************
+// *************** Global Variables & Objects ***************
 let actorModel: object;
 let actorModelName: string;
 let currentModel: object;
@@ -73,7 +64,12 @@ const pathDefaultJSON: string = '/src/json/channelActors_.json';
 let colorController: any;
 let removeActorController: any;
 
-let guiState = { viewingMode: false };
+// Drag & Drop
+let isDragging = false;
+let draggedActor: THREE.Object3D | null = null;
+let dragOffset = new THREE.Vector3();
+
+let guiState = {viewingMode: false};
 
 const channels = ["Channel 0", "Channel 1", "Channel 2", "Channel 3"];
 const models = ["Neutral_A_Pose", "Neutral_T_Pose", "Female_A_Pose", "Female_T_Pose", "Male_A_Pose", "Male_T_Pose", "Male_Old_A_Pose", "Male_Old_T_Pose"];
@@ -177,7 +173,7 @@ onMounted(() => {
   // *************** Label for actor ***************
 
   const labelRenderer = new CSS2DRenderer();
-  labelRenderer.setSize(window.innerWidth * (1/3), window.innerHeight);
+  labelRenderer.setSize(window.innerWidth * (1 / 3), window.innerHeight);
   labelRenderer.domElement.style.position = 'absolute';
   labelRenderer.domElement.style.top = '0';
   labelRenderer.domElement.style.pointerEvents = 'none';
@@ -189,74 +185,178 @@ onMounted(() => {
   let mouseHelper: THREE.Mesh;
   const position = new THREE.Vector3();
 
-  init();
 
-  function init() {
+  // *************** Drag & Drop ***************
+  window.addEventListener('pointerdown', (event: MouseEvent) => {
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth * (1/3), window.innerHeight );
-    renderer.setAnimationLoop(render);
-    // label stuff
-    container.appendChild(renderer.domElement);
-    labelRenderer.domElement.style.zIndex = '1';
-    container.appendChild(labelRenderer.domElement);
+    if (guiState.viewingMode) return;
 
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, (window.innerWidth ) / (window.innerHeight), 1, 1000);
-    camera.position.z = 300;
+    const currentChannel = guiSettings.selectedChannel;
+    const currentActor = channelActors[currentChannel];
+    if (!currentActor) return;
 
-    scene.add(new THREE.AmbientLight(0xffffff));
+    const mousePos = new THREE.Vector2();
+    const rect = container.getBoundingClientRect();
+    mousePos.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mousePos.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, 3);
-    dirLight1.position.set(1, 0.75, 0.5);
-    scene.add(dirLight1);
+    raycaster.setFromCamera(mousePos, camera);
+    const intersectsActors = raycaster.intersectObject(currentActor, true);
 
-    const dirLight2 = new THREE.DirectionalLight(0xffffff, 3);
-    dirLight2.position.set(-1, 0.75, -0.5);
-    scene.add(dirLight2);
+    if (intersectsActors.length > 0) {
+      controls.enabled = false;
+      draggedActor = intersectsActors[0].object.parent || intersectsActors[0].object;
+      dragOffset.copy(draggedActor.position).sub(intersectsActors[0].point);
+      isDragging = true;
+    }
+  });
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.minDistance = 2;
-    controls.maxDistance = 400;
+  window.addEventListener('pointermove', (event: MouseEvent) => {
+    if (!isDragging || !draggedActor) return;
 
-    let moved = false;
-    controls.addEventListener("change", () => (moved = true));
-    window.addEventListener("pointerdown", () => (moved = false));
+    const mousePos = new THREE.Vector2();
+    const rect = container.getBoundingClientRect();
+    mousePos.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mousePos.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mousePos, camera);
+    const intersectsMesh = raycaster.intersectObject(meshModel, true);
+    if (intersectsMesh.length > 0) {
+      const intersect = intersectsMesh[0];
+      const offset = new THREE.Vector3(0, 1, 0);
+      const newPosition = intersect.point.clone().add(dragOffset).add(offset);
+      draggedActor.position.copy(newPosition);
 
-    mouseHelper = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 10), new THREE.MeshNormalMaterial());
-    mouseHelper.visible = false;
-    scene.add(mouseHelper);
+      if (intersect.face) {
+        const faceNormal = intersect.face.normal.clone();
+        const normalMatrix = new THREE.Matrix3().getNormalMatrix(meshModel.matrixWorld);
+        faceNormal.applyMatrix3(normalMatrix).normalize();
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
-    line = new THREE.Line(geometry, new THREE.LineBasicMaterial());
-    scene.add(line);
+        const upVector = new THREE.Vector3(0, 1, 0);
+        const quat = new THREE.Quaternion().setFromUnitVectors(upVector, faceNormal);
+        draggedActor.quaternion.copy(quat);
+      }
 
-    window.addEventListener("resize", onWindowResize);
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", (event) => {
-      if (!moved) {
-        checkIntersection(event.clientX, event.clientY);
-        if (intersection.intersects) {
-          const channel = guiSettings.selectedChannel;
-          if (!channelActors[channel]) {
-            placeActor(channel);
-            updateRemoveActorButton();
-          }
+      // prepared and send data then actor is placed for the first time
+      const channel = guiSettings.selectedChannel;
+      const updateData = {
+        channel: channel,
+        position: {
+          x: draggedActor.position.x,
+          y: draggedActor.position.y,
+          z: draggedActor.position.z,
+        },
+        normals: [
+          draggedActor.quaternion.x,
+          draggedActor.quaternion.y,
+          draggedActor.quaternion.z,
+          draggedActor.quaternion.w,
+        ],
+        actorModel: actorModelName,
+        actorColor: guiSettings.selectedColor,
+      };
+      socket.emit("send-actor-placement", JSON.stringify(updateData));
+    }
+  });
+
+  window.addEventListener('pointerup', (event: MouseEvent) => {
+    if (isDragging && draggedActor) {
+      isDragging = false;
+      const channel = guiSettings.selectedChannel;
+      const updateData = {
+        channel: channel,
+        position: {
+          x: draggedActor.position.x,
+          y: draggedActor.position.y,
+          z: draggedActor.position.z,
+        },
+        normals: [
+          draggedActor.quaternion.x,
+          draggedActor.quaternion.y,
+          draggedActor.quaternion.z,
+          draggedActor.quaternion.w
+        ],
+        actorModel: actorModelName,
+        actorColor: guiSettings.selectedColor
+      };
+
+      // Update channelPositions local storage
+      channelPositions[channel] = updateData;
+      localStorage.setItem('channelActors', JSON.stringify(channelPositions));
+
+      // send updatet data if actor is moved 
+      socket.emit('send-actor-placement', JSON.stringify(updateData));
+
+      draggedActor = null;
+      controls.enabled = true;
+    }
+  });
+
+  // *************** Render & Setup ***************
+  renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth * (1 / 3), window.innerHeight);
+  renderer.setAnimationLoop(render);
+  // label stuff
+  container.appendChild(renderer.domElement);
+  labelRenderer.domElement.style.zIndex = '1';
+  container.appendChild(labelRenderer.domElement);
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45, (window.innerWidth) / (window.innerHeight), 1, 1000);
+  camera.position.z = 300;
+
+  scene.add(new THREE.AmbientLight(0xffffff));
+
+  const dirLight1 = new THREE.DirectionalLight(0xffffff, 3);
+  dirLight1.position.set(1, 0.75, 0.5);
+  scene.add(dirLight1);
+
+  const dirLight2 = new THREE.DirectionalLight(0xffffff, 3);
+  dirLight2.position.set(-1, 0.75, -0.5);
+  scene.add(dirLight2);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.minDistance = 2;
+  controls.maxDistance = 400;
+
+  let moved = false;
+  controls.addEventListener("change", () => (moved = true));
+  window.addEventListener("pointerdown", () => (moved = false));
+
+  raycaster = new THREE.Raycaster();
+
+  mouseHelper = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 10), new THREE.MeshNormalMaterial());
+  mouseHelper.visible = false;
+  scene.add(mouseHelper);
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+  line = new THREE.Line(geometry, new THREE.LineBasicMaterial());
+  scene.add(line);
+
+  window.addEventListener("resize", onWindowResize);
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", (event) => {
+    if (!moved) {
+      checkIntersection(event.clientX, event.clientY);
+      if (intersection.intersects) {
+        const channel = guiSettings.selectedChannel;
+        if (!channelActors[channel]) {
+          placeActor(channel);
+          updateRemoveActorButton();
         }
       }
-    });
+    }
+  });
 
-    loadModel(modelsPath.Neutral_A_Pose); // default Model
-    loadActor(actorModels.ERM, "ERM"); // default Actor Model
-    createSettingsPanel(actorModels);
+  loadModel(modelsPath.Neutral_A_Pose); // default Model
+  loadActor(actorModels.ERM, "ERM"); // default Actor Model
+  createSettingsPanel(actorModels);
 
-    loadActorPositions(pathDefaultJSON); // load and check in local storage JSON
-    onWindowResize();
-  }
+  loadActorPositions(pathDefaultJSON); // load and check in local storage JSON
+  onWindowResize();
+
 
   // *************** Server Websocket ***************
 
@@ -266,15 +366,29 @@ onMounted(() => {
   })
 
   // receive and place the actor from different clients
-  socket.on("receive-actor-placement", stringData => {
-    const data = JSON.parse(stringData);
-    placeActorFromJSON(data);
-    console.log(data);
-  })
+  socket.on("receive-actor-placement", (jsondata) => {
+    const data = JSON.parse(jsondata);
+    const channel = data.channel;
+    // if actor already placed -> sent to new postion
+    if (channelActors[channel]) {
+      channelActors[channel].position.set(
+          data.position.x,
+          data.position.y,
+          data.position.z
+      );
+      channelActors[channel].quaternion.set(
+          data.normals[0],
+          data.normals[1],
+          data.normals[2],
+          data.normals[3]
+      );
+    } else {
+      placeActorFromJSON(data);
+    }
+  });
 
   socket.on("receive-actor-remove", stringData => {
     const data = JSON.parse(stringData);
-    //console.log(data.channel);
     removeActor(data.channel);
   })
 
@@ -407,7 +521,7 @@ onMounted(() => {
     const actorColor = guiSettings.selectedColor;
     actorClone.traverse((child) => {
       if (child.material) {
-        child.material = new THREE.MeshStandardMaterial({ color: actorColor });
+        child.material = new THREE.MeshStandardMaterial({color: actorColor});
       }
     });
 
@@ -460,12 +574,12 @@ onMounted(() => {
       // Update local Storage
       localStorage.setItem("channelActors", JSON.stringify(channelPositions));
       // send it to server
-      socket.emit("send-actor-remove", JSON.stringify( {channel: channel}));
+      socket.emit("send-actor-remove", JSON.stringify({channel: channel}));
       updateRemoveActorButton();
     }
   }
 
-  // *********************************************************************** AB HIER GUI ***********************************************************************
+  // ******************** AB HIER GUI ********************
   // In Zeile 191 wird createSettingsPanel aufgerufen
 
   function updateRemoveActorButton() {
@@ -488,7 +602,7 @@ onMounted(() => {
       return;
     }
 
-    const blob = new Blob([data], { type: "application/json" });
+    const blob = new Blob([data], {type: "application/json"});
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
@@ -502,7 +616,7 @@ onMounted(() => {
 
   function createSettingsPanel(actorModels: Record<string, string>) {
     const simuID = document.getElementById("simuGUI");
-    const panel = new GUI({ container: simuID , width: 450 });
+    const panel = new GUI({container: simuID, width: 450});
 
     // *** Mode Folder ***
     const modeFolder = panel.addFolder("Mode");
@@ -569,7 +683,7 @@ onMounted(() => {
 
     // **** Switch Actor Models ****
     const modelOptions = Object.keys(actorModels);
-    const actorGUIState = { actorModel: modelOptions[0] };
+    const actorGUIState = {actorModel: modelOptions[0]};
 
     const actorModelController = actorFolder
         .add(actorGUIState, "actorModel", Object.keys(actorModels))
@@ -699,7 +813,8 @@ onMounted(() => {
       const data = await response.json();
       localStorage.setItem("channelActors", JSON.stringify(data));
       placeActorFromJSON(data);
-
+      // send locations of actor to other clienst
+      socket.emit("send-actor-placement", JSON.stringify(data));
     } catch (e) {
       localStorage.setItem("channelActors", JSON.stringify(channelPositions));
     }
@@ -710,15 +825,15 @@ onMounted(() => {
       const posData = data[channel];
       if (!posData) return;
 
-        // update channelPositions with JSON
-        channelPositions[channel] = {
-          x: posData.x,
-          y: posData.y,
-          z: posData.z,
-          actorModel: posData.actorModel,
-          actorColor: posData.actorColor,
-          normals: posData.normals
-        };
+      // update channelPositions with JSON
+      channelPositions[channel] = {
+        x: posData.x,
+        y: posData.y,
+        z: posData.z,
+        actorModel: posData.actorModel,
+        actorColor: posData.actorColor,
+        normals: posData.normals
+      };
 
       const modelPath = actorModels[posData.actorModel];
       if (!modelPath) return;
@@ -744,7 +859,7 @@ onMounted(() => {
         const actorColor = posData.actorColor;
         actorClone.traverse((child) => {
           if (child.isMesh) {
-            child.material = new THREE.MeshStandardMaterial({ color: actorColor });
+            child.material = new THREE.MeshStandardMaterial({color: actorColor});
           }
         });
 
@@ -780,7 +895,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div id="three-container"> </div>
+  <div id="three-container"></div>
 </template>
 
 <style scoped>
