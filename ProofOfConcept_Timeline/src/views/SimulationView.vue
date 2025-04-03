@@ -32,16 +32,18 @@ function animateActor(actor: string, intensity: number) {
   if (!actor) return;
   if (!channelActors[actor]) return;
 
-  const strengthFactor = guiSettings.animationStrength;
+  const amplitudeFactor = guiSettings.animationAmplitude;
+  const frequenzFactor = guiSettings.animationFrequenz;
   const actorObject = channelActors[actor];
 
   function animate() {
 
-
     if (intensity > 0) {
       let time = clock.getElapsedTime();
-      const scaleSinus = 1 + Math.abs(Math.sin((intensity * strengthFactor) * time)) * 0.5;
-      actorObject.scale.set(scaleSinus, scaleSinus, scaleSinus);
+      // + 1 to push sinus in 0,5 => 1,5
+      const sinus = 1 + Math.sin(time * frequenzFactor) * (intensity * amplitudeFactor * 0.5);
+      const absSinus = Math.abs(sinus);
+      actorObject.scale.set(absSinus, absSinus, absSinus);
       idOfFrame = requestAnimationFrame(animate);
     } else {
       actorObject.scale.set(1, 1, 1);
@@ -51,7 +53,6 @@ function animateActor(actor: string, intensity: number) {
       }
     }
   }
-
   animate();
 }
 
@@ -144,7 +145,8 @@ const guiSettings = {
   selectedModel: models[0],
   selectedChannel: channels[0],
   selectedColor: "#ff0000",
-  animationStrength: 1,
+  animationAmplitude: 1,
+  animationFrequenz: 1,
 };
 
 
@@ -693,10 +695,18 @@ onMounted(() => {
           loadActor(selectedPath, modelName);
         });
 
-    // *** Animation Strength ***
-    const animationStrengthController = actorFolder
-        .add(guiSettings, "animationStrength", 1, 20, 1)
-        .name("Select Animation Strength Multipler")
+    // *** Amplitude Strength ***
+    const animationAmplitudeController = actorFolder
+        .add(guiSettings, "animationAmplitude", 1, 20, 1)
+        .name("Select Animation Amplitude Multipler")
+        .onChange((multipler: number) => {
+          console.log(multipler);
+        });
+
+    // *** Frequenz Strength ***
+    const animationFrequenzController = actorFolder
+        .add(guiSettings, "animationFrequenz", 1, 20, 1)
+        .name("Select Animation Frequenz Multipler")
         .onChange((multipler: number) => {
           console.log(multipler);
         });
@@ -788,7 +798,8 @@ onMounted(() => {
       removeActorController.disable(isViewing);
       loadActorController.disable(isViewing);
       channelFolderController.disable(isViewing);
-      animationStrengthController.disable(isViewing);
+      animationAmplitudeController.disable(isViewing);
+      animationFrequenzController.disable(isViewing);
 
       if (isViewing) {
         container.style.pointerEvents = "auto";
