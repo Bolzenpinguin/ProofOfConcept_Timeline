@@ -3,7 +3,7 @@ import * as THREE from "three";
 import {onMounted, defineProps, watch} from "vue";
 import {OBJLoader} from "three/addons/loaders/OBJLoader.js";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
-import GUI from "three/examples/jsm/libs/lil-gui.module.min";
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
 import {CSS2DRenderer, CSS2DObject} from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import {io} from "socket.io-client"
 
@@ -42,8 +42,7 @@ function animateActor(actor: string, intensity: number) {
       let time = clock.getElapsedTime();
       // + 1 to push sinus in 0,5 => 1,5
       const sinus = 1 + Math.sin(time * frequenzFactor) * (intensity * amplitudeFactor * 0.5);
-      const absSinus = Math.abs(sinus);
-      actorObject.scale.set(absSinus, absSinus, absSinus);
+      actorObject.scale.set(sinus, sinus, sinus);
       idOfFrame = requestAnimationFrame(animate);
     } else {
       actorObject.scale.set(1, 1, 1);
@@ -64,6 +63,10 @@ const pathDefaultJSON: string = '/src/json/channelActors_.json';
 
 let colorController: any;
 let removeActorController: any;
+let channelFolderController: any;
+
+let channelChangeForWebsocket = false;
+
 
 // Drag & Drop
 let isDragging = false;
@@ -367,6 +370,15 @@ onMounted(() => {
     console.log(`You connected with ID: ${socket.id}`)
   })
 
+  socket.on("channel-change", (data) => {
+    //console.log(data.channel);
+    channelChangeForWebsocket = true;
+    guiSettings.selectedChannel = data.channel;
+    channelFolderController.setValue(data.channel);
+    channelFolderController.updateDisplay();
+    console.log(data.channel);
+  });
+
   // receive and place the actor from different clients
   socket.on("receive-actor-placement", (jsondata) => {
     const data = JSON.parse(jsondata);
@@ -662,12 +674,11 @@ onMounted(() => {
     const channelsFolder = panel.addFolder("Channels");
     channelsFolder.close();
 
-    const channelFolderController = channelsFolder
+    channelFolderController = channelsFolder
         .add(guiSettings, "selectedChannel", channels)
         .name("Select Channel")
         .onChange((selectedChannel: string) => {
           const channelData = channelPositions[selectedChannel];
-          console.log(localStorage.getItem("channelActors"));
 
           // Update the actor color from the loaded JSON if available
           if (channelData && channelData.actorColor) {
@@ -677,6 +688,12 @@ onMounted(() => {
           }
           colorController.updateDisplay();
           updateRemoveActorButton();
+          //console.log(selectedChannel);
+          if (!channelChangeForWebsocket) {
+            socket.emit("channel-change", {channel: selectedChannel});
+          } else {
+            channelChangeForWebsocket = false;
+          }
         });
 
     // **** Create Actor Folder ****
