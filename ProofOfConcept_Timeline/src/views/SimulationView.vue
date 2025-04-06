@@ -66,6 +66,7 @@ let removeActorController: any;
 let channelFolderController: any;
 
 let channelChangeForWebsocket = false;
+let colorChangeForWebsocket = false;
 
 
 // Drag & Drop
@@ -343,6 +344,7 @@ onMounted(() => {
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", (event) => {
+    if (guiState.viewingMode) return;
     if (!moved) {
       checkIntersection(event.clientX, event.clientY);
       if (intersection.intersects) {
@@ -367,7 +369,7 @@ onMounted(() => {
 
   const socket = io("http://localhost:3000");
   socket.on("connect", () => {
-    console.log(`You connected with ID: ${socket.id}`)
+    //console.log(`You connected with ID: ${socket.id}`)
   })
 
   socket.on("channel-change", (data) => {
@@ -376,8 +378,16 @@ onMounted(() => {
     guiSettings.selectedChannel = data.channel;
     channelFolderController.setValue(data.channel);
     channelFolderController.updateDisplay();
-    console.log(data.channel);
+    //console.log(data.channel);
   });
+
+  socket.on("color-change", (data) => {
+    //console.log(data);
+    colorChangeForWebsocket = true;
+    guiSettings.selectedColor = data.color;
+    colorController.setValue(data.color);
+    channelFolderController.updateDisplay();
+  })
 
   // receive and place the actor from different clients
   socket.on("receive-actor-placement", (jsondata) => {
@@ -583,8 +593,8 @@ onMounted(() => {
         z: null,
         actorModel: null,
         actorColor: null,
-        normales: null,
-      }
+        normals: null,
+      };
       // Update local Storage
       localStorage.setItem("channelActors", JSON.stringify(channelPositions));
       // send it to server
@@ -740,6 +750,11 @@ onMounted(() => {
             channelActors[channel].traverse((child) => {
               if (child.isMesh) {
                 child.material.color.set(newColor);
+                if (!colorChangeForWebsocket) {
+                  socket.emit('color-change', { color: newColor });
+                } else {
+                  colorChangeForWebsocket = false;
+                }
               }
             });
           }
