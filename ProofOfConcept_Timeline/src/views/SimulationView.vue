@@ -41,7 +41,7 @@ function animateActor(actor: string, intensity: number) {
     if (intensity > 0) {
       let time = clock.getElapsedTime();
       // + 1 to push sinus in 0,5 => 1,5
-      const sinus = 1 + Math.sin(time * frequenzFactor) * (intensity * amplitudeFactor * 0.5);
+      const sinus = Math.abs(1 + Math.sin(time * frequenzFactor) * (intensity * amplitudeFactor * 0.5));
       actorObject.scale.set(sinus, sinus, sinus);
       idOfFrame = requestAnimationFrame(animate);
     } else {
@@ -343,16 +343,43 @@ onMounted(() => {
 
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", (event) => {
-    if (guiState.viewingMode) return;
-    if (!moved) {
+  window.addEventListener("pointerup", (event: MouseEvent) => {
+    if (isDragging && draggedActor) {
+      isDragging = false;
+      const channel = guiSettings.selectedChannel;
+      const updateData = {
+        channel: channel,
+        position: {
+          x: draggedActor.position.x,
+          y: draggedActor.position.y,
+          z: draggedActor.position.z,
+        },
+        normals: [
+          draggedActor.quaternion.x,
+          draggedActor.quaternion.y,
+          draggedActor.quaternion.z,
+          draggedActor.quaternion.w
+        ],
+        actorModel: actorModelName,
+        actorColor: guiSettings.selectedColor
+      };
+
+      // Update channelPositions in localStorage
+      channelPositions[channel] = updateData;
+      localStorage.setItem("channelActors", JSON.stringify(channelPositions));
+      socket.emit("send-actor-placement", JSON.stringify(updateData));
+
+      // Reset Drag & Drop
+      draggedActor = null;
+      controls.enabled = true;
+    }
+
+    if (!guiState.viewingMode && !moved) {
       checkIntersection(event.clientX, event.clientY);
-      if (intersection.intersects) {
-        const channel = guiSettings.selectedChannel;
-        if (!channelActors[channel]) {
-          placeActor(channel);
-          updateRemoveActorButton();
-        }
+      const channel = guiSettings.selectedChannel;
+      if (intersection.intersects  && !channelActors[channel]) {
+        placeActor(channel);
+        updateRemoveActorButton();
       }
     }
   });
@@ -411,10 +438,44 @@ onMounted(() => {
     }
   });
 
-  socket.on("receive-actor-remove", stringData => {
-    const data = JSON.parse(stringData);
-    removeActor(data.channel);
-  })
+  socket.on("receive-actor-remove", (jsondata) => {
+    const data = JSON.parse(jsondata);
+
+    scene.children.slice().forEach(child => {
+      if (child.name && child.name.includes(data.channel)) {
+        child.traverse(obj => {
+          if (obj instanceof CSS2DObject) {
+            obj.element.remove();
+            obj.removeFromParent();
+          }
+          if (obj.geometry) {
+            obj.geometry.dispose();
+          }
+          if (obj.material) {
+            if (Array.isArray(obj.material)) {
+              obj.material.forEach(material => material.dispose());
+            } else {
+              obj.material.dispose();
+            }
+          }
+        });
+        scene.remove(child);
+      }
+    });
+
+    channelActors[data.channel] = null;
+    channelPositions[data.channel] = {
+      x: null,
+      y: null,
+      z: null,
+      actorModel: null,
+      actorColor: null,
+      normals: null,
+    };
+
+    localStorage.setItem("channelActors", JSON.stringify(channelPositions));
+
+  });
 
   // *************** Functions ***************
 
@@ -532,7 +593,10 @@ onMounted(() => {
     position.addScaledVector(intersection.normal, 0);
 
     const actorClone = actorModel.clone();
+    actorClone.name = `${channel}`;
     actorClone.position.copy(position);
+
+    console.log(actorClone);
 
     // rotate actors on normales
     const upVector = new THREE.Vector3(0, 1, 0);
@@ -577,13 +641,31 @@ onMounted(() => {
     const actor = channelActors[channel];
     // remove the label
     if (actor) {
-      actor.traverse((child) => {
-        if (child instanceof CSS2DObject) {
-          child.element.remove();
-          child.removeFromParent();
+
+      console.log(channel);
+
+      scene.children.slice().forEach(child => {
+        if (child.name && child.name.includes(channel)) {
+          child.traverse(obj => {
+            if (obj instanceof CSS2DObject) {
+              obj.element.remove();
+              obj.removeFromParent();
+            }
+            if (obj.geometry) {
+              obj.geometry.dispose();
+            }
+            if (obj.material) {
+              if (Array.isArray(obj.material)) {
+                obj.material.forEach(material => material.dispose());
+              } else {
+                obj.material.dispose();
+              }
+            }
+          });
+          scene.remove(child);
         }
       });
-
+      
       scene.remove(actor);
       channelActors[channel] = null;
 
@@ -765,6 +847,8 @@ onMounted(() => {
     const removeActorGUI = {
       removeActor: () => {
         const channel = guiSettings.selectedChannel;
+        console.log(channel);
+        console.log(typeof(channel))
         removeActor(channel);
         updateRemoveActorButton();
       },
@@ -884,6 +968,7 @@ onMounted(() => {
       // load actor models
       loadActor(modelPath, posData.actorModel, (loadedObject) => {
         const actorClone = loadedObject.clone();
+        actorClone.name = `${channel}`;
         actorClone.position.set(posData.x, posData.y, posData.z);
 
         // rotate actors on normales -> get value from JSON
