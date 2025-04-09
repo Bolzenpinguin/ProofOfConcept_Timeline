@@ -39,17 +39,17 @@ function animateActor(actor: string, intensity: number) {
   function animate() {
 
     if (intensity > 0) {
+      // + 1 to push sinus in  => 1,5
       let time = clock.getElapsedTime();
-      // + 1 to push sinus in 0,5 => 1,5
-      const sinus = Math.abs(1 + Math.sin(time * frequenzFactor) * (intensity * amplitudeFactor * 0.5));
-      actorObject.scale.set(sinus, sinus, sinus);
+      const normalizedSinus = (Math.sin(time * frequenzFactor) + 1) / 2; // [-1| 1] convert to [0|1]
+      let scale = 1 + normalizedSinus * (intensity * amplitudeFactor);
+      actorObject.scale.set(scale, scale, scale);
       idOfFrame = requestAnimationFrame(animate);
+      console.log(scale)
     } else {
       actorObject.scale.set(1, 1, 1);
       cancelAnimationFrame(idOfFrame);
-      if (actorObject.scale !== 1) {
-        actorObject.scale.set(1, 1, 1);
-      }
+      actorObject.scale.set(1, 1, 1);
     }
   }
   animate();
